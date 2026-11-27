@@ -21,10 +21,6 @@ export function renderTenantLoginView(initialValues = {}) {
           <input id="tlLicenseKey" type="text" required placeholder="MHS-XXXX-XXXX" value="${escapeAttr(licenseKey)}" />
         </div>
 
-        <div class="field">
-          <label for="tlCloudUrl">Central Cloud Base URL</label>
-          <input id="tlCloudUrl" type="url" value="${escapeAttr(cloudBaseUrl)}" />
-        </div>
 
         <div id="tlError" class="alert-banner alert-red" style="display:none;"></div>
 
