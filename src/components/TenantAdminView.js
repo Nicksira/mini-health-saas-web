@@ -53,7 +53,7 @@ export function renderTenantAdminView({ tenantSession, adminPin = '', offlineCou
               </div>
             </div>
             <div class="grid-3">
-              <div class="field"><label>ตำแหน่ง (position)</label><input type="text" id="newUserPosition" placeholder="เช่น แพทย์แผนไทย" /></div>
+              <div class="field"><label>ตำแหน่ง (position)</label><input type="text" id="newUserPosition" placeholder="เช่น อสม." /></div>
               <div class="field"><label>หมู่ที่ (village_no)</label><input type="text" id="newUserVillageNo" placeholder="เช่น 5" /></div>
               <div class="field"><label>เบอร์โทร (phone)</label><input type="text" id="newUserPhone" placeholder="08xxxxxxxx" /></div>
             </div>

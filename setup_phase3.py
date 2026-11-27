@@ -1138,7 +1138,7 @@ export function renderTenantLoginView(initialValues = {}) {
       <form id="tenantLoginForm">
         <div class="field">
           <label for="tlHospcode">รหัสสถานบริการ 5 หลัก (hospcode)</label>
-          <input id="tlHospcode" type="text" maxlength="5" pattern="\\d{5}" required placeholder="เช่น 02506" value="${escapeAttr(hospcode)}" />
+          <input id="tlHospcode" type="text" maxlength="5" pattern="\\d{5}" required placeholder="เช่น 0xxxx" value="${escapeAttr(hospcode)}" />
         </div>
 
         <div class="field">
@@ -1571,7 +1571,7 @@ FILES["src/components/TenantAdminView.js"] = r"""export function renderTenantAdm
               </div>
             </div>
             <div class="grid-3">
-              <div class="field"><label>ตำแหน่ง (position)</label><input type="text" id="newUserPosition" placeholder="เช่น แพทย์แผนไทย" /></div>
+              <div class="field"><label>ตำแหน่ง (position)</label><input type="text" id="newUserPosition" placeholder="เช่น อสม." /></div>
               <div class="field"><label>หมู่ที่ (village_no)</label><input type="text" id="newUserVillageNo" placeholder="เช่น 5" /></div>
               <div class="field"><label>เบอร์โทร (phone)</label><input type="text" id="newUserPhone" placeholder="08xxxxxxxx" /></div>
             </div>
