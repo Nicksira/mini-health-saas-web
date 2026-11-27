@@ -13,7 +13,7 @@ export function renderTenantLoginView(initialValues = {}) {
       <form id="tenantLoginForm">
         <div class="field">
           <label for="tlHospcode">รหัสสถานบริการ 5 หลัก (hospcode)</label>
-          <input id="tlHospcode" type="text" maxlength="5" pattern="\\d{5}" required placeholder="เช่น 02506" value="${escapeAttr(hospcode)}" />
+          <input id="tlHospcode" type="text" maxlength="5" pattern="\\d{5}" required placeholder="เช่น 0xxxx" value="${escapeAttr(hospcode)}" />
         </div>
 
         <div class="field">
