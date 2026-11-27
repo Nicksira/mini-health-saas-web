@@ -1,0 +1,17 @@
+{
+  "name": "mini-health-web-app",
+  "version": "3.1.0",
+  "private": true,
+  "description": "Mini Health Station SaaS - Phase 3: Central Web App (Multi-Tenant PWA)",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "vite": "^6.0.7"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "Mini Health Station SaaS (Multi-Tenant PWA)",
+  "short_name": "Mini Health PWA",
+  "description": "ระบบบริการปฐมภูมิ คัดกรอง อสม. และโต๊ะตรวจเจ้าหน้าที่ เชื่อมต่อ JHCIS ผ่าน Local Connector",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#0f766e",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
