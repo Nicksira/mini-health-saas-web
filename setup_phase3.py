@@ -1552,7 +1552,7 @@ FILES["src/components/TenantAdminView.js"] = r"""export function renderTenantAdm
           <div class="card" style="padding:14px;">
             <strong>เพิ่ม / แก้ไขบุคลากรรายบุคคล</strong>
             <div class="field" style="margin-top:8px;"><label>เลขบัตรประชาชน (13 หลัก)</label><input type="text" id="newUserCid" maxlength="13" placeholder="13 หลัก" /></div>
-            <div class="field"><label>ชื่อ-สกุล</label><input type="text" id="newUserName" placeholder="เช่น นายสิรภพ แก้วทิพย์" /></div>
+            <div class="field"><label>ชื่อ-สกุล</label><input type="text" id="newUserName" placeholder="เช่น นายดี ยินดี" /></div>
             <div class="field">
               <label>บทบาท / สิทธิ์การใช้งาน (เลือกได้มากกว่า 1 บทบาท)</label>
               <div class="role-checkbox-group">
