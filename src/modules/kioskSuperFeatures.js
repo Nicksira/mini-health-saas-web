@@ -841,7 +841,7 @@ function injectGlobalModals() {
     '    </div>',
     '    <button type="button" class="btn btn-green" style="width:100%;padding:12px;" onclick="window.__mhs.saveBpFollowUp()"><i class="fa-solid fa-floppy-disk"></i> บันทึกผลการติดตาม</button>',
     '  </div>',
-    '</div>'
+    '</div>',
     '<!-- Modal 9: Admin Secret Password (กดโลโก้ 5 ครั้ง) -->',
     '<div id="mhsAdminPassModal" class="mhs-modal-bg" onclick="if(event.target===this)this.classList.remove(\'open\')">',
     '  <div class="mhs-modal-box" style="max-width:380px;">',
