@@ -595,7 +595,7 @@ function renderAdminDashboard() {
       '<h3 style="margin:0 0 16px;color:#007AFF;">⚙️ ตั้งค่าระบบ Kiosk &amp; สื่อหน้าแรก</h3>',
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">',
       '  <div style="padding:14px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;"><label style="font-weight:700;display:block;margin-bottom:8px;">เปลี่ยนรูปโลโก้หน่วยงาน</label><img src="' + escAttr(AppState.customLogo) + '" style="height:70px;object-fit:contain;display:block;margin-bottom:8px;" /><input type="file" id="admLogoFile" accept="image/*" /></div>',
-      '  <div style="padding:14px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;"><label style="font-weight:700;display:block;margin-bottom:8px;">เปลี่ยนวิดีโอพื้นหลังหน้าแรก (MP4 ≤ 30MB · ซิงค์ทุกเครื่องอัตโนมัติ)</label><video src="' + escAttr(AppState.customVideo) + '" muted autoplay loop playsinline style="width:100%;height:70px;object-fit:cover;border-radius:8px;margin-bottom:8px;"></video><input type="file" id="admVideoFile" accept="video/mp4" /></div>',
+      '  <div style="padding:14px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;"><label style="font-weight:700;display:block;margin-bottom:8px;">เปลี่ยนวิดีโอพื้นหลังหน้าแรก (MP4 ≤ 15MB · ซิงค์ทุกเครื่องอัตโนมัติ)</label><video src="' + escAttr(AppState.customVideo) + '" muted autoplay loop playsinline style="width:100%;height:70px;object-fit:cover;border-radius:8px;margin-bottom:8px;"></video><input type="file" id="admVideoFile" accept="video/mp4" /></div>',
       '</div>',
       '<div class="tl-field"><label>ชื่อหน่วยงาน / โรงพยาบาล</label><input id="admHospName" value="' + escAttr(getHospDisplay()) + '" /></div>',
       '<div class="tl-field"><label>เปลี่ยนรหัสผ่านเข้าหน้า Admin (กดโลโก้ 5 ครั้ง · เว้นว่างหากไม่เปลี่ยน)</label><input type="password" id="admNewPass" placeholder="ค่าเริ่มต้น: Admin00000" /></div>',
@@ -927,7 +927,7 @@ document.addEventListener('click', async (e) => {
     if (hn) { AppState.customHospName = hn; localStorage.setItem('custom_hosp_name', hn); }
     if (np) localStorage.setItem('mhs_admin_password', np);
     const synced = await saveBrandingMeta(hn);
-    alert(synced ? '✅ บันทึกและซิงค์การตั้งค่าไปยังทุกเครื่องเรียบร้อยแล้ว' : '✅ บันทึกในเครื่องนี้แล้ว (ซิงค์ไม่สำเร็จ — เช็กว่าอัปเดตและรีสตาร์ท Local Connector แล้ว)');
+    alert(synced ? '✅ บันทึกและซิงค์การตั้งค่าไปยังทุกเครื่องเรียบร้อยแล้ว' : '✅ บันทึกในเครื่องนี้แล้ว (ซิงค์ไม่สำเร็จ — เช็กว่า Deploy mini-health-saas-cloud แล้ว)');
     render(); return;
   }
   if (act === 'adm-reset-media') { await resetBrandingOnConnector(); localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; alert('✅ คืนค่าโลโก้และวิดีโอเริ่มต้นในทุกเครื่องแล้ว'); render(); return; }
@@ -1172,8 +1172,8 @@ document.addEventListener('change', async (e) => {
   }
   if (el.id === 'admVideoFile' && el.files[0]) {
     const file = el.files[0];
-    if (file.size > 30 * 1024 * 1024) { alert('⚠️ ไฟล์วิดีโอใหญ่เกิน 30 MB'); return; }
-    alert('⏳ กำลังอัปโหลดวิดีโอขึ้นเซิร์ฟเวอร์หน่วยงาน กรุณารอสักครู่...');
+    if (file.size > 15 * 1024 * 1024) { alert('⚠️ ไฟล์วิดีโอใหญ่เกิน 15 MB'); return; }
+    alert('⏳ กำลังอัปโหลดวิดีโอขึ้น Cloud กลาง กรุณารอสักครู่...');
     const up = await uploadBrandingFile('video', file);
     if (up.ok) { alert('✅ อัปเดตวิดีโอพื้นหลังแล้ว เครื่องอื่นจะเปลี่ยนตามอัตโนมัติ'); render(); }
     else { alert('❌ อัปโหลดวิดีโอไม่สำเร็จ: ' + up.message); }

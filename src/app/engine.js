@@ -404,10 +404,10 @@ export async function fetchTenantBranding() {
 
 export async function syncBrandingFromConnector() {
   const t = AppState.tenant;
-  if (!t || !t.api_url) return false;
-  const base = String(t.api_url).replace(/\/+$/, '');
+  if (!t || !t.hospcode) return false;
+  const base = AppState.cloudUrl.replace(/\/+$/, '');
   try {
-    const res = await fetch(base + '/public-branding/meta?t=' + Date.now(), { cache: 'no-store' });
+    const res = await fetch(base + '/api/public/branding/' + encodeURIComponent(t.hospcode) + '/meta?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) return false;
     const d = await res.json().catch(() => null);
     if (!d || !d.success) return false;
@@ -440,53 +440,73 @@ export async function syncBrandingFromConnector() {
 
 export async function uploadBrandingFile(kind, file) {
   const t = AppState.tenant;
-  if (!t || !t.api_url) return { ok: false, message: 'ยังไม่ได้เชื่อมต่อ Local Connector' };
-  const base = String(t.api_url).replace(/\/+$/, '');
-  const ext = (file.name && file.name.includes('.') ? file.name.split('.').pop() : (kind === 'video' ? 'mp4' : 'png')).toLowerCase();
+  const lic = t && (t.license_key || t.licenseKey || '');
+  if (!t || !t.hospcode || !lic) {
+    return { ok: false, message: 'ไม่พบ License Key ในเซสชัน กรุณาออกจากสถานบริการแล้วล็อกอินใหม่' };
+  }
+  const base = AppState.cloudUrl.replace(/\/+$/, '');
+  const chunkSize = 400 * 1024; // 400 KB per chunk (ปลอดภัยกับขีดจำกัด 1 MB ของ D1)
+  const version = Date.now();
+  const totalChunks = Math.ceil(file.size / chunkSize);
+
   try {
-    const res = await fetch(base + '/jhcis-api/branding/' + kind + '?ext=' + encodeURIComponent(ext), {
+    for (let i = 0; i < totalChunks; i++) {
+      const slice = file.slice(i * chunkSize, Math.min(file.size, (i + 1) * chunkSize));
+      const res = await fetch(
+        base + '/api/tenant/branding/chunk?kind=' + encodeURIComponent(kind) + '&version=' + version + '&index=' + i,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'x-hospcode': String(t.hospcode),
+            'x-license-key': String(lic),
+          },
+          body: slice,
+        }
+      );
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.success) {
+        return { ok: false, message: d.message || ('อัปโหลดก้อนที่ ' + (i + 1) + '/' + totalChunks + ' ไม่สำเร็จ (HTTP ' + res.status + ')') };
+      }
+    }
+
+    const commitRes = await cloudFetch('/api/tenant/branding/commit', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'x-api-key': t.api_secret || '',
-      },
-      body: file,
+      body: JSON.stringify({
+        kind,
+        version,
+        mime: file.type || (kind === 'logo' ? 'image/png' : 'video/mp4'),
+        totalSize: file.size,
+        chunkSize,
+      }),
     });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok || !d.success) {
-      return { ok: false, message: d.message || ('HTTP ' + res.status + ' — กรุณาตรวจสอบว่าอัปเดตและรีสตาร์ท Local Connector แล้ว') };
+    if (!commitRes.ok || !commitRes.data || !commitRes.data.success) {
+      return { ok: false, message: (commitRes.data && commitRes.data.message) || 'ยืนยันไฟล์ไม่สำเร็จ' };
     }
-    if (kind === 'logo' && d.logoUrl) {
-      AppState.customLogo = base + d.logoUrl;
-      localStorage.setItem('custom_logo', AppState.customLogo);
-    }
-    if (kind === 'video' && d.videoUrl) {
-      AppState.customVideo = base + d.videoUrl;
-      localStorage.setItem('custom_video', AppState.customVideo);
+
+    const fullUrl = base + commitRes.data.url;
+    if (kind === 'logo') {
+      AppState.customLogo = fullUrl;
+      localStorage.setItem('custom_logo', fullUrl);
+    } else {
+      AppState.customVideo = fullUrl;
+      localStorage.setItem('custom_video', fullUrl);
     }
     return { ok: true };
   } catch (e) {
-    return { ok: false, message: 'เชื่อมต่อ Local Connector ไม่สำเร็จ: ' + (e.message || e) };
+    return { ok: false, message: 'อัปโหลดขึ้น Cloud กลางไม่สำเร็จ: ' + (e.message || e) };
   }
 }
 
 export async function saveBrandingMeta(hospName) {
-  try {
-    const r = await jhcisFetch('/jhcis-api/branding/meta', {
-      method: 'POST',
-      body: JSON.stringify({ hospName: hospName || '' }),
-    });
-    return Boolean(r.ok && r.data && r.data.success);
-  } catch (e) {
-    return false;
-  }
+  const r = await cloudFetch('/api/tenant/branding/meta', {
+    method: 'POST',
+    body: JSON.stringify({ hospName: hospName || '' }),
+  });
+  return Boolean(r.ok && r.data && r.data.success);
 }
 
 export async function resetBrandingOnConnector() {
-  try {
-    const r = await jhcisFetch('/jhcis-api/branding', { method: 'DELETE' });
-    return Boolean(r.ok && r.data && r.data.success);
-  } catch (e) {
-    return false;
-  }
+  const r = await cloudFetch('/api/tenant/branding', { method: 'DELETE' });
+  return Boolean(r.ok && r.data && r.data.success);
 }
