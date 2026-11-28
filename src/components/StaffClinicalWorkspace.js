@@ -1,256 +1,221 @@
 export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets = [] }) {
-  const ccPresets = presets.filter((p) => ['symptoms', 'cc'].includes(String(p.category || 'symptoms').toLowerCase()));
-  const piPresets = presets.filter((p) => String(p.category || '').toLowerCase() === 'symptomsco');
-  const notePresets = presets.filter((p) => ['diagnote', 'note'].includes(String(p.category || '').toLowerCase()));
-  const dosePresets = presets.filter((p) => String(p.category || '').toLowerCase() === 'dose');
+  const ccPresets = presets.filter(function (p) { return ['symptoms', 'cc'].includes(String(p.category || 'symptoms').toLowerCase()); });
+  const piPresets = presets.filter(function (p) { return String(p.category || '').toLowerCase() === 'symptomsco'; });
+  const notePresets = presets.filter(function (p) { return ['diagnote', 'note'].includes(String(p.category || '').toLowerCase()); });
+  const dosePresets = presets.filter(function (p) { return String(p.category || '').toLowerCase() === 'dose'; });
+  const staffName = staffUser.full_name || staffUser.name || ('เจ้าหน้าที่ ' + staffUser.cid);
 
-  const staffName = staffUser.full_name || staffUser.name || `เจ้าหน้าที่ ${staffUser.cid}`;
+  const renderChips = function (list, targetId) {
+    return list.map(function (p) {
+      const val = p.content || p.text || '';
+      return '<button type="button" class="chip" data-fill-target="' + targetId + '" data-fill-text="' + escAttr(val) + '">' + esc(p.label || val) + '</button>';
+    }).join('');
+  };
 
-  return `
-    <div class="card" style="margin-bottom:14px;padding:14px 18px !important;">
-      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div style="width:40px;height:40px;border-radius:12px;background:rgba(0,122,255,0.1);color:#007AFF;display:flex;align-items:center;justify-content:center;font-size:18px;">
-            <i class="fa-solid fa-user-doctor"></i>
-          </div>
-          <div>
-            <div style="font-weight:700;font-size:16px;">โต๊ะตรวจเจ้าหน้าที่ (iPadOS Clinical Workspace)</div>
-            <div class="muted">ผู้ปฏิบัติงาน: <strong>${esc(staffName)}</strong> (${esc(staffUser.cid)})</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" class="btn btn-outline btn-sm" id="btnRefreshQueue"><i class="fa-solid fa-rotate"></i> รีเฟรชคิววันนี้</button>
-          <button type="button" class="btn btn-primary btn-sm" id="btnNewVisitMode"><i class="fa-solid fa-plus"></i> เปิดคิว / บันทึกใหม่</button>
-          <button type="button" class="btn btn-outline btn-sm" id="btnStaffLogout"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</button>
-        </div>
-      </div>
-    </div>
+  const hotIcdHtml = ['J00', 'J06', 'I10', 'E11', 'M79', 'K29', 'Z00'].map(function (code) {
+    return '<button type="button" class="chip" onclick="window.__mhs && window.__mhs.quickIcd(\'' + code + '\')">' + code + '</button>';
+  }).join('');
 
-    <div class="split-view">
-      <div class="card">
-        <h3 class="card-title">
-          <span><i class="fa-solid fa-list-ul" style="color:#007AFF;margin-right:6px;"></i>คิวตรวจวันนี้</span>
-          <span class="pill pill-role" id="queueCountBadge">0</span>
-        </h3>
-        <div class="field">
-          <input type="text" id="queueFilterInput" placeholder="ค้นหาชื่อ หรือเลขบัตร 13 หลัก..." />
-        </div>
-        <div class="queue-list" id="todayQueueList">
-          <div class="muted">กำลังโหลดคิวจาก JHCIS...</div>
-        </div>
-      </div>
+  return [
+    '<div class="card" style="margin-bottom:14px;padding:12px 16px !important;">',
+    '  <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;">',
+    '    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">',
+    '      <button type="button" class="btn btn-outline btn-sm" onclick="window.__mhs && window.__mhs.toggleSidebar()" title="แสดง/ซ่อนแถบคิวตรวจ"><i class="fa-solid fa-table-columns"></i></button>',
+    '      <div style="position:relative;width:44px;height:44px;">',
+    '        <img id="staffAvatarImg" style="display:none;width:44px;height:44px;border-radius:12px;object-fit:cover;border:1px solid var(--border);" alt="รูปผู้ป่วย" />',
+    '        <div id="staffAvatarPlaceholder" style="width:44px;height:44px;border-radius:12px;background:rgba(0,122,255,0.1);color:#007AFF;display:flex;align-items:center;justify-content:center;font-size:18px;"><i class="fa-solid fa-user-doctor"></i></div>',
+    '        <label style="position:absolute;bottom:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:#007AFF;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;" title="ถ่ายรูปผู้ป่วย">',
+    '          <i class="fa-solid fa-camera"></i>',
+    '          <input type="file" id="staffPhotoInput" accept="image/*" capture="user" style="display:none;" />',
+    '        </label>',
+    '      </div>',
+    '      <div>',
+    '        <div style="font-weight:700;font-size:15.5px;">โต๊ะตรวจเจ้าหน้าที่ (iPadOS Clinical Workspace)</div>',
+    '        <div class="muted">ผู้ปฏิบัติงาน: <strong>' + esc(staffName) + '</strong> (' + esc(staffUser.cid) + ')</div>',
+    '      </div>',
+    '    </div>',
+    '    <div style="display:flex;gap:6px;flex-wrap:wrap;">',
+    '      <button type="button" class="btn btn-outline btn-sm" onclick="window.__mhs && window.__mhs.openBluetooth()"><i class="fa-brands fa-bluetooth-b" style="color:#007AFF;"></i> Bluetooth</button>',
+    '      <button type="button" class="btn btn-outline btn-sm" onclick="window.__mhs && window.__mhs.openTelemed()"><i class="fa-solid fa-video" style="color:#0EA5E9;"></i> Telemed</button>',
+    '      <button type="button" class="btn btn-outline btn-sm" id="btnRefreshQueue"><i class="fa-solid fa-rotate"></i> รีเฟรชคิว</button>',
+    '      <button type="button" class="btn btn-primary btn-sm" id="btnNewVisitMode"><i class="fa-solid fa-plus"></i> เปิดคิวใหม่</button>',
+    '      <button type="button" class="btn btn-outline btn-sm" id="btnStaffLogout"><i class="fa-solid fa-right-from-bracket"></i> ออก</button>',
+    '    </div>',
+    '  </div>',
+    '</div>',
 
-      <div class="card">
-        <div id="staffAlertBanner" class="alert-banner" style="display:none;"></div>
+    '<div class="split-view" id="staffSplitView">',
+    '  <div class="card">',
+    '    <h3 class="card-title">',
+    '      <span><i class="fa-solid fa-list-ul" style="color:#007AFF;margin-right:6px;"></i>คิวตรวจวันนี้</span>',
+    '      <span class="pill pill-role" id="queueCountBadge">0</span>',
+    '    </h3>',
+    '    <div class="field"><input type="text" id="queueFilterInput" placeholder="ค้นหาชื่อ หรือเลขบัตร 13 หลัก..." /></div>',
+    '    <div class="tabs" style="margin:0 0 10px !important;padding:3px;">',
+    '      <button type="button" class="tab-btn active" data-qfilter="all" onclick="window.__mhs && window.__mhs.filterQueueTab(\'all\', this)" style="flex:1;padding:6px 4px !important;font-size:12px !important;">ทั้งหมด</button>',
+    '      <button type="button" class="tab-btn" data-qfilter="waiting" onclick="window.__mhs && window.__mhs.filterQueueTab(\'waiting\', this)" style="flex:1;padding:6px 4px !important;font-size:12px !important;">รอตรวจ</button>',
+    '      <button type="button" class="tab-btn" data-qfilter="done" onclick="window.__mhs && window.__mhs.filterQueueTab(\'done\', this)" style="flex:1;padding:6px 4px !important;font-size:12px !important;">ตรวจแล้ว</button>',
+    '    </div>',
+    '    <div class="queue-list" id="todayQueueList"><div class="muted">กำลังโหลดคิวจาก JHCIS...</div></div>',
+    '  </div>',
 
-        <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);margin-bottom:14px;">
-          <div class="grid-3" style="align-items:end;">
-            <div class="field" style="margin-bottom:0;">
-              <label for="staffCidInput">เลขบัตรประชาชนผู้ป่วย (13 หลัก)</label>
-              <input type="text" id="staffCidInput" maxlength="13" placeholder="กรอกเลขบัตร 13 หลัก" style="font-weight:700;letter-spacing:0.8px;" />
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button type="button" class="btn btn-primary" id="btnStaffSearchCid"><i class="fa-solid fa-magnifying-glass"></i> ค้นหาผู้ป่วย</button>
-              <button type="button" class="btn btn-outline" id="btnStaffReadCard"><i class="fa-solid fa-id-card"></i> อ่านบัตร</button>
-            </div>
-            <div style="display:flex;justify-content:flex-end;">
-              <span class="pill pill-role" id="visitModeBadge">โหมด: สร้าง Visit ใหม่</span>
-            </div>
-          </div>
-        </div>
+    '  <div class="card">',
+    '    <div id="staffAlertBanner" class="alert-banner" style="display:none;"></div>',
+    '    <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);margin-bottom:12px;">',
+    '      <div class="grid-3" style="align-items:end;">',
+    '        <div class="field" style="margin-bottom:0;">',
+    '          <label for="staffCidInput">เลขบัตรประชาชนผู้ป่วย (13 หลัก)</label>',
+    '          <input type="text" id="staffCidInput" maxlength="13" placeholder="กรอกเลขบัตร 13 หลัก" style="font-weight:700;letter-spacing:0.8px;" />',
+    '        </div>',
+    '        <div style="display:flex;gap:8px;flex-wrap:wrap;">',
+    '          <button type="button" class="btn btn-primary" id="btnStaffSearchCid"><i class="fa-solid fa-magnifying-glass"></i> ค้นหาผู้ป่วย</button>',
+    '          <button type="button" class="btn btn-outline" id="btnStaffReadCard"><i class="fa-solid fa-id-card"></i> อ่านบัตร</button>',
+    '        </div>',
+    '        <div style="display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;">',
+    '          <span class="pill pill-role" id="staffBmiLive">BMI --</span>',
+    '          <span class="pill pill-role" id="visitModeBadge">โหมด: สร้าง Visit ใหม่</span>',
+    '        </div>',
+    '      </div>',
+    '      <div class="preset-chips" style="margin-top:10px;">',
+    '        <button type="button" class="chip" onclick="window.__mhs && window.__mhs.fillNormalGA()"><i class="fa-solid fa-wand-magic-sparkles"></i> เติม GA+ ปกติ</button>',
+    '        <button type="button" class="chip" onclick="window.__mhs && window.__mhs.openGuide(\'bp\')"><i class="fa-solid fa-gauge-high"></i> วัดความดัน BLE</button>',
+    '        <button type="button" class="chip" onclick="window.__mhs && window.__mhs.openGuide(\'weight\')"><i class="fa-solid fa-weight-scale"></i> ชั่งน้ำหนัก BLE</button>',
+    '        <button type="button" class="chip" onclick="window.__mhs && window.__mhs.openGuide(\'temp\')"><i class="fa-solid fa-temperature-half"></i> วัดอุณหภูมิ BLE</button>',
+    '        <button type="button" class="chip" onclick="window.__mhs && window.__mhs.openGuide(\'sugar\')"><i class="fa-solid fa-droplet"></i> วัดน้ำตาล BLE</button>',
+    '      </div>',
+    '    </div>',
 
-        <div id="patientSummaryBar" class="alert-banner alert-green" style="display:none;"></div>
-        <div id="allergyWarningBar" class="alert-banner alert-red" style="display:none;"></div>
+    '    <div id="patientSummaryBar" class="alert-banner alert-green" style="display:none;"></div>',
+    '    <div id="allergyWarningBar" class="alert-banner alert-red" style="display:none;"></div>',
 
-        <div class="tabs" id="staffTabs">
-          <button type="button" class="tab-btn active" data-tab="vitals">1. ซักประวัติ &amp; สัญญาณชีพ</button>
-          <button type="button" class="tab-btn" data-tab="dxrx">2. ICD-10 &amp; สั่งยา/หัตถการ</button>
-          <button type="button" class="tab-btn" data-tab="special">3. DTX / SpecialPP / เด็ก 0-60ด.</button>
-          <button type="button" class="tab-btn" data-tab="history">4. ประวัติย้อนหลัง</button>
-          <button type="button" class="tab-btn" data-tab="ai_tele">5. AI &amp; Telemedicine</button>
-        </div>
+    '    <div class="tabs" id="staffTabs">',
+    '      <button type="button" class="tab-btn active" data-tab="vitals">1. ซักประวัติ &amp; สัญญาณชีพ</button>',
+    '      <button type="button" class="tab-btn" data-tab="dxrx">2. ICD-10 &amp; สั่งยา/หัตถการ</button>',
+    '      <button type="button" class="tab-btn" data-tab="special">3. DTX / SpecialPP / เด็ก 0-60ด.</button>',
+    '      <button type="button" class="tab-btn" data-tab="history">4. ประวัติย้อนหลัง</button>',
+    '      <button type="button" class="tab-btn" data-tab="ai_tele">5. AI &amp; Telemedicine</button>',
+    '    </div>',
 
-        <div class="staff-tab-panel" data-panel="vitals">
-          <div class="grid-2" style="margin-bottom:14px;">
-            <div class="field" style="margin-bottom:0;">
-              <label for="stSymptoms">อาการสำคัญ (CC / symptoms)</label>
-              <input type="text" id="stSymptoms" placeholder="เช่น ปวดเมื่อยกล้ามเนื้อ / ตรวจติดตามอาการ" />
-              <div class="preset-chips">
-                ${ccPresets.map((p) => {
-                  const val = p.content || p.text || '';
-                  return `<button type="button" class="chip" data-fill-target="stSymptoms" data-fill-text="${escAttr(val)}">${esc(p.label || val)}</button>`;
-                }).join('')}
-              </div>
-            </div>
-            <div class="field" style="margin-bottom:0;">
-              <label for="stSymptomsco">อาการร่วม / PI (symptomsco)</label>
-              <input type="text" id="stSymptomsco" placeholder="รายละเอียดเพิ่มเติม" />
-              <div class="preset-chips">
-                ${piPresets.map((p) => {
-                  const val = p.content || p.text || '';
-                  return `<button type="button" class="chip" data-fill-target="stSymptomsco" data-fill-text="${escAttr(val)}">${esc(p.label || val)}</button>`;
-                }).join('')}
-              </div>
-            </div>
-          </div>
+    '    <div class="staff-tab-panel" data-panel="vitals">',
+    '      <div class="grid-2" style="margin-bottom:14px;">',
+    '        <div class="field" style="margin-bottom:0;">',
+    '          <label for="stSymptoms">อาการสำคัญ (CC / symptoms)</label>',
+    '          <input type="text" id="stSymptoms" placeholder="เช่น ปวดเมื่อยกล้ามเนื้อ / ตรวจติดตามอาการ" />',
+    '          <div class="preset-chips">' + renderChips(ccPresets, 'stSymptoms') + '</div>',
+    '        </div>',
+    '        <div class="field" style="margin-bottom:0;">',
+    '          <label for="stSymptomsco">อาการร่วม / PI (symptomsco)</label>',
+    '          <input type="text" id="stSymptomsco" placeholder="รายละเอียดเพิ่มเติม" />',
+    '          <div class="preset-chips">' + renderChips(piPresets, 'stSymptomsco') + '</div>',
+    '        </div>',
+    '      </div>',
+    '      <div class="mhs-bento-vitals" style="margin-bottom:14px;">',
+    '        <div class="mhs-vital-card"><label for="stWeight"><span>น้ำหนัก</span><span>kg</span></label><input type="number" step="0.1" id="stWeight" placeholder="0.0" /></div>',
+    '        <div class="mhs-vital-card"><label for="stHeight"><span>ส่วนสูง</span><span>cm</span></label><input type="number" step="0.1" id="stHeight" placeholder="0.0" /></div>',
+    '        <div class="mhs-vital-card"><label for="stPressure"><span>ความดัน</span><span>mmHg</span></label><input type="text" id="stPressure" placeholder="120/80" /></div>',
+    '        <div class="mhs-vital-card"><label for="stPulse"><span>ชีพจร</span><span>bpm</span></label><input type="number" id="stPulse" placeholder="75" /></div>',
+    '        <div class="mhs-vital-card"><label for="stTemp"><span>อุณหภูมิ</span><span>°C</span></label><input type="number" step="0.1" id="stTemp" placeholder="36.5" /></div>',
+    '        <div class="mhs-vital-card"><label for="stWaist"><span>รอบเอว</span><span>cm</span></label><input type="number" step="0.1" id="stWaist" placeholder="80" /></div>',
+    '      </div>',
+    '      <div class="grid-2">',
+    '        <div class="field" style="margin:0;">',
+    '          <label for="stTimeService">ช่วงเวลาบริการ</label>',
+    '          <select id="stTimeService"><option value="1">1 = ในเวลาราชการ</option><option value="2">2 = นอกเวลาราชการ</option></select>',
+    '        </div>',
+    '        <div class="field" style="margin:0;">',
+    '          <label for="stDiagNote">บันทึกแพทย์/เจ้าหน้าที่ (diagnote)</label>',
+    '          <input type="text" id="stDiagNote" placeholder="หมายเหตุการตรวจ" />',
+    '          <div class="preset-chips">' + renderChips(notePresets, 'stDiagNote') + '</div>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
 
-          <div class="mhs-bento-vitals" style="margin-bottom:14px;">
-            <div class="mhs-vital-card"><label for="stWeight"><span>น้ำหนัก</span><span>kg</span></label><input type="number" step="0.1" id="stWeight" placeholder="0.0" /></div>
-            <div class="mhs-vital-card"><label for="stHeight"><span>ส่วนสูง</span><span>cm</span></label><input type="number" step="0.1" id="stHeight" placeholder="0.0" /></div>
-            <div class="mhs-vital-card"><label for="stPressure"><span>ความดัน</span><span>mmHg</span></label><input type="text" id="stPressure" placeholder="120/80" /></div>
-            <div class="mhs-vital-card"><label for="stPulse"><span>ชีพจร</span><span>bpm</span></label><input type="number" id="stPulse" placeholder="75" /></div>
-            <div class="mhs-vital-card"><label for="stTemp"><span>อุณหภูมิ</span><span>°C</span></label><input type="number" step="0.1" id="stTemp" placeholder="36.5" /></div>
-            <div class="mhs-vital-card"><label for="stWaist"><span>รอบเอว</span><span>cm</span></label><input type="number" step="0.1" id="stWaist" placeholder="80" /></div>
-            <div class="field" style="margin:0;">
-              <label for="stTimeService">ช่วงเวลาบริการ</label>
-              <select id="stTimeService">
-                <option value="1">1 = ในเวลาราชการ</option>
-                <option value="2">2 = นอกเวลาราชการ</option>
-              </select>
-            </div>
-            <div class="field" style="margin:0;">
-              <label for="stDiagNote">บันทึกแพทย์/เจ้าหน้าที่ (diagnote)</label>
-              <input type="text" id="stDiagNote" placeholder="หมายเหตุการตรวจ" />
-              <div class="preset-chips">
-                ${notePresets.map((p) => {
-                  const val = p.content || p.text || '';
-                  return `<button type="button" class="chip" data-fill-target="stDiagNote" data-fill-text="${escAttr(val)}">${esc(p.label || val)}</button>`;
-                }).join('')}
-              </div>
-            </div>
-          </div>
-        </div>
+    '    <div class="staff-tab-panel" data-panel="dxrx" style="display:none;">',
+    '      <datalist id="dosePresetsList">' + dosePresets.map(function (p) { return '<option value="' + escAttr(p.content || p.text || '') + '">' + esc(p.label || '') + '</option>'; }).join('') + '</datalist>',
+    '      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">',
+    '        <button type="button" class="btn btn-primary btn-sm" id="btnReMed"><i class="fa-solid fa-rotate-left"></i> Re Med. (ดึงยา/โรคครั้งล่าสุด)</button>',
+    '        <span class="muted" id="reMedInfo"></span>',
+    '      </div>',
+    '      <div class="grid-2">',
+    '        <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">',
+    '          <label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:6px;">ค้นหารหัสโรค ICD-10 (Hot-Diag ลัด)</label>',
+    '          <div class="preset-chips" style="margin:0 0 8px;">' + hotIcdHtml + '</div>',
+    '          <div style="display:flex;gap:6px;margin-bottom:8px;">',
+    '            <input type="text" id="icdSearchInput" placeholder="พิมพ์รหัสหรือชื่อโรค เช่น I10, J06" />',
+    '            <button type="button" class="btn btn-outline btn-sm" id="btnSearchIcd">ค้นหา</button>',
+    '          </div>',
+    '          <div id="icdSearchResults" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);background:#fff;border-radius:12px;padding:6px;margin-bottom:12px;"></div>',
+    '          <strong style="font-size:13.5px;">รายการ ICD-10 ที่เลือก</strong>',
+    '          <table><thead><tr><th>รหัส</th><th>DxType</th><th>วันนัด</th><th>ลบ</th></tr></thead><tbody id="selectedIcdBody"><tr><td colspan="4" class="muted">ยังไม่ได้เลือกรหัส ICD-10</td></tr></tbody></table>',
+    '        </div>',
+    '        <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">',
+    '          <label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:8px;">ค้นหายา / สมุนไพร / หัตถการ</label>',
+    '          <div style="display:flex;gap:6px;margin-bottom:8px;">',
+    '            <select id="drugCategorySelect" style="width:130px;flex-shrink:0;"><option value="all">ทั้งหมด</option><option value="herb">สมุนไพร (10)</option><option value="service">หัตถการ (02,03)</option><option value="dental">ทันตกรรม (06,02)</option><option value="adp">ADP (11)</option></select>',
+    '            <input type="text" id="drugSearchInput" placeholder="พิมพ์ชื่อยา/สมุนไพร/หัตถการ" />',
+    '            <button type="button" class="btn btn-outline btn-sm" id="btnSearchDrug">ค้นหา</button>',
+    '          </div>',
+    '          <div id="drugSearchResults" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);background:#fff;border-radius:12px;padding:6px;margin-bottom:12px;"></div>',
+    '          <strong style="font-size:13.5px;">รายการยา / สมุนไพร / หัตถการ ที่สั่ง</strong>',
+    '          <table><thead><tr><th>รายการ</th><th>จำนวน</th><th>วิธีใช้</th><th>ลบ</th></tr></thead><tbody id="selectedDrugBody"><tr><td colspan="4" class="muted">ยังไม่มีรายการยา/สมุนไพร/หัตถการ</td></tr></tbody></table>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
 
-        <div class="staff-tab-panel" data-panel="dxrx" style="display:none;">
-          <datalist id="dosePresetsList">
-            ${dosePresets.map((p) => `<option value="${escAttr(p.content || p.text || '')}">${esc(p.label || '')}</option>`).join('')}
-          </datalist>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
-            <button type="button" class="btn btn-primary btn-sm" id="btnReMed"><i class="fa-solid fa-rotate-left"></i> Re Med. (ดึงยา/โรคครั้งล่าสุด)</button>
-            <span class="muted" id="reMedInfo"></span>
-          </div>
-          <div class="grid-2">
-            <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">
-              <label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:8px;">ค้นหารหัสโรค ICD-10</label>
-              <div style="display:flex;gap:6px;margin-bottom:8px;">
-                <input type="text" id="icdSearchInput" placeholder="พิมพ์รหัสหรือชื่อโรค เช่น I10, J06" />
-                <button type="button" class="btn btn-outline btn-sm" id="btnSearchIcd">ค้นหา</button>
-              </div>
-              <div id="icdSearchResults" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);background:#fff;border-radius:12px;padding:6px;margin-bottom:12px;"></div>
-              <strong style="font-size:13.5px;">รายการ ICD-10 ที่เลือก</strong>
-              <table>
-                <thead><tr><th>รหัส</th><th>DxType</th><th>วันนัด</th><th>ลบ</th></tr></thead>
-                <tbody id="selectedIcdBody"><tr><td colspan="4" class="muted">ยังไม่ได้เลือกรหัส ICD-10</td></tr></tbody>
-              </table>
-            </div>
-            <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">
-              <label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:8px;">ค้นหายา / สมุนไพร / หัตถการ</label>
-              <div style="display:flex;gap:6px;margin-bottom:8px;">
-                <select id="drugCategorySelect" style="width:130px;flex-shrink:0;">
-                  <option value="all">ทั้งหมด</option>
-                  <option value="herb">สมุนไพร (10)</option>
-                  <option value="service">หัตถการ (02,03)</option>
-                  <option value="dental">ทันตกรรม (06,02)</option>
-                  <option value="adp">ADP (11)</option>
-                </select>
-                <input type="text" id="drugSearchInput" placeholder="พิมพ์ชื่อยา/สมุนไพร/หัตถการ" />
-                <button type="button" class="btn btn-outline btn-sm" id="btnSearchDrug">ค้นหา</button>
-              </div>
-              <div id="drugSearchResults" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);background:#fff;border-radius:12px;padding:6px;margin-bottom:12px;"></div>
-              <strong style="font-size:13.5px;">รายการยา / สมุนไพร / หัตถการ ที่สั่ง</strong>
-              <table>
-                <thead><tr><th>รายการ</th><th>จำนวน (Stepper)</th><th>วิธีใช้</th><th>ลบ</th></tr></thead>
-                <tbody id="selectedDrugBody"><tr><td colspan="4" class="muted">ยังไม่มีรายการยา/สมุนไพร/หัตถการ</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+    '    <div class="staff-tab-panel" data-panel="special" style="display:none;">',
+    '      <div class="grid-3">',
+    '        <div class="field"><label>น้ำตาล DTX (mg/dL)</label><input type="number" step="0.1" id="stSugar" /></div>',
+    '        <div class="field"><label>สถานะการอดอาหาร</label><input type="text" id="stSugarFasting" placeholder="เช่น งดน้ำ-อาหาร / ไม่งดน้ำ-อาหาร" /></div>',
+    '        <div class="field"><label>อายุเป็นเดือน (เด็ก 0-60ด.)</label><input type="number" id="stAgeMonths" placeholder="คำนวณอัตโนมัติจากคนไข้" /></div>',
+    '      </div>',
+    '      <div class="grid-2" style="margin-top:8px;">',
+    '        <div class="card" style="padding:14px !important;background:var(--surface-2) !important;">',
+    '          <strong>SpecialPP: บุหรี่ &amp; สุรา</strong>',
+    '          <div class="field" style="margin-top:10px;"><label>สถานะการสูบบุหรี่</label><select id="stSmokeStatus"><option value="">-- ไม่ระบุ --</option><option value="ไม่สูบ">ไม่สูบ (1B52)</option><option value="เคยสูบแต่เลิกแล้ว">เคยสูบแต่เลิกแล้ว (1B51)</option><option value="ยังสูบอยู่">ยังสูบอยู่</option></select></div>',
+    '          <div class="field" style="margin-bottom:0;"><label>สถานะการดื่มสุรา</label><select id="stAlcoholStatus"><option value="">-- ไม่ระบุ --</option><option value="ไม่ดื่ม">ไม่ดื่ม (1B600)</option><option value="เคยดื่มแต่เลิกแล้ว">เคยดื่มแต่เลิกแล้ว (1B601)</option><option value="ยังดื่มอยู่">ยังดื่มอยู่</option></select></div>',
+    '        </div>',
+    '        <div class="card" style="padding:14px !important;background:var(--surface-2) !important;">',
+    '          <strong>โภชนาการเด็ก 0-60 เดือน (visitnutrition)</strong>',
+    '          <div class="grid-2" style="margin-top:10px;">',
+    '            <div class="field"><label>รอบศีรษะ (cm)</label><input type="number" step="0.1" id="stHeadCircum" /></div>',
+    '            <div class="field"><label>ระดับโภชนาการ (nlevel)</label><select id="stNlevel"><option value="3">ปกติ (3)</option><option value="1">ผอม/ต่ำกว่าเกณฑ์ (1)</option><option value="2">เริ่มอ้วน/สูงกว่าเกณฑ์ (2)</option><option value="99">รหัส 99 (แปลผลไม่ได้)</option></select></div>',
+    '            <div class="field" style="margin-bottom:0;"><label>nlevel2</label><input type="text" id="stNlevel2" value="3" /></div>',
+    '            <div class="field" style="margin-bottom:0;"><label>nlevel3 / พัฒนาการ</label><input type="text" id="stNlevel3" value="4" /></div>',
+    '          </div>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
 
-        <div class="staff-tab-panel" data-panel="special" style="display:none;">
-          <div class="grid-3">
-            <div class="field"><label>น้ำตาล DTX (mg/dL)</label><input type="number" step="0.1" id="stSugar" /></div>
-            <div class="field"><label>สถานะการอดอาหาร</label><input type="text" id="stSugarFasting" placeholder="เช่น NPO / หลังอาหาร 2 ชม." /></div>
-            <div class="field"><label>อายุเป็นเดือน (เด็ก 0-60ด.)</label><input type="number" id="stAgeMonths" placeholder="คำนวณอัตโนมัติจากคนไข้" /></div>
-          </div>
-          <div class="grid-2" style="margin-top:8px;">
-            <div class="card" style="padding:14px !important;background:var(--surface-2) !important;">
-              <strong>SpecialPP: บุหรี่ &amp; สุรา</strong>
-              <div class="field" style="margin-top:10px;">
-                <label>สถานะการสูบบุหรี่</label>
-                <select id="stSmokeStatus">
-                  <option value="">-- ไม่ระบุ --</option>
-                  <option value="ไม่สูบ">ไม่สูบ (1B52)</option>
-                  <option value="เคยสูบแต่เลิกแล้ว">เคยสูบแต่เลิกแล้ว (1B51)</option>
-                  <option value="ยังสูบอยู่">ยังสูบอยู่</option>
-                </select>
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>สถานะการดื่มสุรา</label>
-                <select id="stAlcoholStatus">
-                  <option value="">-- ไม่ระบุ --</option>
-                  <option value="ไม่ดื่ม">ไม่ดื่ม (1B600)</option>
-                  <option value="เคยดื่มแต่เลิกแล้ว">เคยดื่มแต่เลิกแล้ว (1B601)</option>
-                  <option value="ยังดื่มอยู่">ยังดื่มอยู่</option>
-                </select>
-              </div>
-            </div>
-            <div class="card" style="padding:14px !important;background:var(--surface-2) !important;">
-              <strong>โภชนาการเด็ก 0-60 เดือน (visitnutrition)</strong>
-              <div class="grid-2" style="margin-top:10px;">
-                <div class="field"><label>รอบศีรษะ (cm)</label><input type="number" step="0.1" id="stHeadCircum" /></div>
-                <div class="field">
-                  <label>ระดับโภชนาการ (nlevel)</label>
-                  <select id="stNlevel">
-                    <option value="3">ปกติ (3)</option>
-                    <option value="1">ผอม/ต่ำกว่าเกณฑ์ (1)</option>
-                    <option value="2">เริ่มอ้วน/สูงกว่าเกณฑ์ (2)</option>
-                    <option value="99">รหัส 99 (แปลงเป็น 3, NULL, NULL)</option>
-                  </select>
-                </div>
-                <div class="field" style="margin-bottom:0;"><label>nlevel2</label><input type="text" id="stNlevel2" value="3" /></div>
-                <div class="field" style="margin-bottom:0;"><label>nlevel3 / พัฒนาการ</label><input type="text" id="stNlevel3" value="4" /></div>
-              </div>
-            </div>
-          </div>
-        </div>
+    '    <div class="staff-tab-panel" data-panel="history" style="display:none;">',
+    '      <div id="patientHistoryBox" class="muted">เลือกผู้ป่วยเพื่อดูประวัติการรับบริการย้อนหลัง 10 ครั้ง</div>',
+    '    </div>',
 
-        <div class="staff-tab-panel" data-panel="history" style="display:none;">
-          <div id="patientHistoryBox" class="muted">เลือกผู้ป่วยเพื่อดูประวัติการรับบริการย้อนหลัง 10 ครั้ง</div>
-        </div>
+    '    <div class="staff-tab-panel" data-panel="ai_tele" style="display:none;">',
+    '      <div class="grid-2">',
+    '        <div class="card" style="padding:16px !important;background:var(--surface-2) !important;">',
+    '          <strong><i class="fa-solid fa-robot" style="color:#007AFF;margin-right:6px;"></i>AI วิเคราะห์ความเสี่ยงเบื้องต้น</strong>',
+    '          <p class="muted" style="margin:6px 0 12px;">ประเมินจากความดัน น้ำตาล และน้ำหนักของคนไข้ปัจจุบัน</p>',
+    '          <button type="button" class="btn btn-primary btn-sm" id="btnRunStaffAi">วิเคราะห์ด้วย AI</button>',
+    '          <div id="staffAiResult" class="alert-banner" style="display:none;margin-top:12px;"></div>',
+    '        </div>',
+    '        <div class="card" style="padding:16px !important;background:var(--surface-2) !important;">',
+    '          <strong><i class="fa-solid fa-video" style="color:#0EA5E9;margin-right:6px;"></i>Telemedicine (Jitsi Meet)</strong>',
+    '          <div class="field" style="margin-top:10px;"><label>ชื่อห้องประชุม Tele-consultation</label><input type="text" id="jitsiRoomInput" value="mini-health-' + escAttr(tenantSession.hospcode || 'room') + '" /></div>',
+    '          <button type="button" class="btn btn-blue btn-sm" id="btnOpenJitsi">เปิดห้อง Telemedicine (Jitsi)</button>',
+    '          <div id="jitsiContainer" style="margin-top:12px;"></div>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
 
-        <div class="staff-tab-panel" data-panel="ai_tele" style="display:none;">
-          <div class="grid-2">
-            <div class="card" style="padding:16px !important;background:var(--surface-2) !important;">
-              <strong><i class="fa-solid fa-robot" style="color:#007AFF;margin-right:6px;"></i>AI วิเคราะห์ความเสี่ยงเบื้องต้น</strong>
-              <p class="muted" style="margin:6px 0 12px;">ประเมินจากความดัน น้ำตาล และน้ำหนักของคนไข้ปัจจุบัน</p>
-              <button type="button" class="btn btn-primary btn-sm" id="btnRunStaffAi">วิเคราะห์ด้วย AI</button>
-              <div id="staffAiResult" class="alert-banner" style="display:none;margin-top:12px;"></div>
-            </div>
-            <div class="card" style="padding:16px !important;background:var(--surface-2) !important;">
-              <strong><i class="fa-solid fa-video" style="color:#0EA5E9;margin-right:6px;"></i>Telemedicine (Jitsi Meet)</strong>
-              <div class="field" style="margin-top:10px;">
-                <label>ชื่อห้องประชุม Tele-consultation</label>
-                <input type="text" id="jitsiRoomInput" value="mini-health-${escAttr(tenantSession.hospcode || 'room')}" />
-              </div>
-              <button type="button" class="btn btn-blue btn-sm" id="btnOpenJitsi">เปิดห้อง Telemedicine (Jitsi)</button>
-              <div id="jitsiContainer" style="margin-top:12px;"></div>
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
-          <button type="button" class="btn btn-primary" style="padding:12px 26px;font-size:15px;" id="btnSaveStaffQueue">
-            <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลเข้า JHCIS
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
+    '    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">',
+    '      <button type="button" class="btn btn-green" style="padding:12px 26px;font-size:15px;" id="btnSaveStaffQueue">',
+    '        <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลเข้า JHCIS',
+    '      </button>',
+    '    </div>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
 }
 
-function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-function escAttr(s) {
-  return esc(s).replace(/"/g, '&quot;');
-}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function escAttr(s) { return esc(s).replace(/"/g, '&quot;'); }

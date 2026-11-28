@@ -1,4 +1,4 @@
-/* Mini Health Station SaaS — Kiosk Original + iPadOS Light UI */
+/* Mini Health Station SaaS — Full Original Kiosk + iPadOS Clinical UI */
 :root {
   --bg: #F2F2F7;
   --surface: #FFFFFF;
@@ -7,14 +7,15 @@
   --muted: #64748B;
   --border: rgba(15, 23, 42, 0.08);
   --primary: #007AFF;
-  --primary-hover: #0062CC;
   --cyan: #4BC0C8;
   --blue: #007AFF;
   --green: #10B981;
   --amber: #F59E0B;
   --red: #EF4444;
+  --purple: #6366F1;
   --shadow-sm: 0 2px 10px rgba(15, 23, 42, 0.05);
   --shadow-md: 0 12px 32px rgba(15, 23, 42, 0.09);
+  --shadow-lg: 0 24px 64px rgba(15, 23, 42, 0.22);
   --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Display", "IBM Plex Sans Thai", "Kanit", sans-serif;
 }
 
@@ -32,7 +33,7 @@ html, body {
 
 button, input, select, textarea { font-family: inherit; }
 
-/* ====== ล้างแถบหัวเว็บสีเขียวเข้มเดิม -> กระจกฝ้าสีขาวสว่าง ====== */
+/* ====== Topbar Frosted Light (ล้างสีเขียวเข้มเดิม) ====== */
 header, .topbar, .app-header, .navbar, nav.topbar {
   background: rgba(255, 255, 255, 0.92) !important;
   background-image: none !important;
@@ -42,16 +43,9 @@ header, .topbar, .app-header, .navbar, nav.topbar {
   border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
   box-shadow: 0 2px 14px rgba(15, 23, 42, 0.05) !important;
 }
-
-header *, .topbar *, .app-header *, .navbar * {
-  color: #0F172A;
-}
-
+header *, .topbar *, .app-header *, .navbar * { color: #0F172A; }
 header small, .topbar small, .app-header small,
-header .muted, .topbar .muted, .app-header .muted {
-  color: #64748B !important;
-}
-
+header .muted, .topbar .muted, .app-header .muted { color: #64748B !important; }
 header button, .topbar button, .app-header button, .navbar button {
   background: #F1F5F9 !important;
   color: #334155 !important;
@@ -61,11 +55,7 @@ header button, .topbar button, .app-header button, .navbar button {
   padding: 7px 15px !important;
   transition: all 0.16s ease !important;
 }
-
-header button:hover, .topbar button:hover, .app-header button:hover {
-  background: #E2E8F0 !important;
-}
-
+header button:hover, .topbar button:hover, .app-header button:hover { background: #E2E8F0 !important; }
 header button.active, .topbar button.active, .app-header button.active,
 header .tab-btn.active, .topbar .tab-btn.active, .app-header .tab-btn.active {
   background: #007AFF !important;
@@ -73,23 +63,17 @@ header .tab-btn.active, .topbar .tab-btn.active, .app-header .tab-btn.active {
   border-color: #007AFF !important;
   box-shadow: 0 4px 12px rgba(0, 122, 255, 0.28) !important;
 }
-
 header .pill-online, .topbar .pill-online, .app-header .pill-online {
   background: #DCFCE7 !important;
   color: #15803D !important;
   border: 1px solid #BBF7D0 !important;
 }
-
 header .pill-warn, .topbar .pill-warn, .app-header .pill-warn {
   background: #FEF3C7 !important;
   color: #B45309 !important;
 }
 
-/* ====== Layout Container ====== */
-main, .container, .app-main {
-  max-width: 1360px;
-  margin-inline: auto;
-}
+main, .container, .app-main { max-width: 1380px; margin-inline: auto; }
 
 .card {
   background: var(--surface) !important;
@@ -98,7 +82,6 @@ main, .container, .app-main {
   box-shadow: var(--shadow-sm) !important;
   padding: 20px !important;
 }
-
 .card-title {
   margin: 0 0 12px;
   font-size: 18px !important;
@@ -109,27 +92,13 @@ main, .container, .app-main {
   justify-content: space-between;
   gap: 10px;
 }
-
 .muted { color: var(--muted) !important; font-size: 13.5px; }
 
-/* ====== Inputs ====== */
 .field { margin-bottom: 12px; }
-.field label {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 6px;
-}
+.field label { display: block; font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 6px; }
 
-input[type="text"],
-input[type="number"],
-input[type="password"],
-input[type="date"],
-input[type="tel"],
-input[type="file"],
-select,
-textarea {
+input[type="text"], input[type="number"], input[type="password"],
+input[type="date"], input[type="tel"], input[type="file"], select, textarea {
   width: 100%;
   padding: 10px 13px;
   border-radius: 12px !important;
@@ -140,13 +109,12 @@ textarea {
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-
 input:focus, select:focus, textarea:focus {
   border-color: var(--blue) !important;
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14) !important;
 }
 
-/* ====== Buttons (Apple Blue & Clean White, ไม่มีสีเขียวเข้ม) ====== */
+/* ====== Buttons ====== */
 .btn {
   border-radius: 12px !important;
   font-weight: 600 !important;
@@ -164,7 +132,6 @@ input:focus, select:focus, textarea:focus {
 .btn:active:not(:disabled) { transform: scale(0.97); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn-sm { padding: 7px 13px !important; font-size: 13px !important; border-radius: 10px !important; }
-
 .btn-primary {
   background: linear-gradient(135deg, #007AFF, #2563EB) !important;
   color: #FFFFFF !important;
@@ -197,7 +164,6 @@ input:focus, select:focus, textarea:focus {
   color: #FFFFFF !important;
 }
 
-/* ====== Pills & Segmented Tabs ====== */
 .pill {
   display: inline-flex;
   align-items: center;
@@ -210,6 +176,7 @@ input:focus, select:focus, textarea:focus {
 .pill-online { background: #DCFCE7 !important; color: #15803D !important; }
 .pill-warn { background: #FEF3C7 !important; color: #B45309 !important; }
 .pill-role { background: rgba(0, 122, 255, 0.1) !important; color: #007AFF !important; }
+.pill-danger { background: #FEE2E2 !important; color: #DC2626 !important; }
 
 .tabs {
   display: flex;
@@ -260,23 +227,29 @@ input:focus, select:focus, textarea:focus {
 }
 .chip:hover { background: #DBEAFE !important; }
 
-/* ====== Grids, Split View & Tables ====== */
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 
 .split-view {
   display: grid !important;
-  grid-template-columns: 310px minmax(0, 1fr) !important;
+  grid-template-columns: 315px minmax(0, 1fr) !important;
   gap: 16px !important;
   align-items: start;
+  transition: grid-template-columns 0.22s ease;
+}
+.split-view.sidebar-hidden {
+  grid-template-columns: 1fr !important;
+}
+.split-view.sidebar-hidden > :first-child {
+  display: none !important;
 }
 
 .queue-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: calc(100vh - 280px);
+  max-height: calc(100vh - 300px);
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -317,6 +290,8 @@ table td {
   vertical-align: middle;
 }
 table tr:last-child td { border-bottom: none; }
+tr.mhs-clickable-row { cursor: pointer; transition: background 0.14s; }
+tr.mhs-clickable-row:hover td { background: #EFF6FF !important; }
 
 .role-checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
 .role-checkbox-item {
@@ -332,12 +307,10 @@ table tr:last-child td { border-bottom: none; }
 }
 .role-checkbox-item input { width: auto !important; margin: 0; }
 
-/* =========================================================
-   SCREEN 1: KIOSK STANDBY (ถอดแบบหน้าต้นฉบับ miniheealthstation.com)
-   ========================================================= */
+/* ====== Kiosk Standby (ต้นฉบับ miniheealthstation.com) ====== */
 .mhs-kiosk-shell {
   width: 100%;
-  min-height: calc(100vh - 86px);
+  min-height: calc(100vh - 84px);
   border-radius: 26px;
   overflow: hidden;
   background: #FFFFFF;
@@ -346,7 +319,6 @@ table tr:last-child td { border-bottom: none; }
   display: flex;
   flex-direction: column;
 }
-
 .mhs-kiosk-header {
   background-color: #FFFFFF;
   background-image:
@@ -354,25 +326,23 @@ table tr:last-child td { border-bottom: none; }
     url('/wallpaper.png');
   background-size: 28px 28px, cover;
   background-position: center;
-  padding: 18px 20px 16px;
+  padding: 16px 20px 14px;
   text-align: center;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   position: relative;
   z-index: 3;
 }
-
 .mhs-kiosk-logo {
-  height: 78px;
-  max-width: 340px;
+  height: 76px;
+  max-width: 320px;
   object-fit: contain;
   margin: 0 auto 2px;
   display: block;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
 }
-
 .mhs-aurora-title {
   margin: 0;
-  font-size: clamp(28px, 4.2vw, 48px);
+  font-size: clamp(28px, 4vw, 46px);
   font-weight: 800;
   letter-spacing: 0.5px;
   line-height: 1.2;
@@ -383,13 +353,7 @@ table tr:last-child td { border-bottom: none; }
   background-clip: text;
   animation: mhsAurora 5s linear infinite;
 }
-
-.mhs-kiosk-hosp {
-  margin: 2px 0 12px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1E293B;
-}
+.mhs-kiosk-hosp { margin: 2px 0 10px; font-size: 16px; font-weight: 600; color: #1E293B; }
 
 .mhs-vhv-bar {
   display: inline-flex;
@@ -405,7 +369,6 @@ table tr:last-child td { border-bottom: none; }
   font-weight: 600;
   box-shadow: 0 6px 18px rgba(99, 102, 241, 0.32);
 }
-
 .mhs-vhv-bar button {
   border: none;
   border-radius: 999px;
@@ -414,12 +377,20 @@ table tr:last-child td { border-bottom: none; }
   font-weight: 700;
   cursor: pointer;
 }
+.mhs-online-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #6EE7B7;
+  display: inline-block;
+  box-shadow: 0 0 8px #6EE7B7;
+  animation: mhsPulse 1.6s infinite;
+}
 
-/* พื้นที่วิดีโอเต็มจอ + รูปสอดบัตร nick.png */
 .mhs-standby-stage {
   position: relative;
   flex: 1;
-  min-height: 520px;
+  min-height: 510px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -428,7 +399,6 @@ table tr:last-child td { border-bottom: none; }
   overflow: hidden;
   background: linear-gradient(180deg, #FFF7ED 0%, #FED7AA 100%);
 }
-
 .mhs-standby-video {
   position: absolute;
   inset: 0;
@@ -439,7 +409,6 @@ table tr:last-child td { border-bottom: none; }
   opacity: 0.55;
   pointer-events: none;
 }
-
 .mhs-standby-content {
   position: relative;
   z-index: 2;
@@ -450,7 +419,6 @@ table tr:last-child td { border-bottom: none; }
   gap: 16px;
   max-width: 560px;
 }
-
 .mhs-nick-trigger {
   background: transparent;
   border: none;
@@ -467,43 +435,26 @@ table tr:last-child td { border-bottom: none; }
   filter: drop-shadow(0 16px 24px rgba(15, 23, 42, 0.22));
   animation: mhsFloat 3.2s ease-in-out infinite;
 }
-
 .mhs-standby-title {
   margin: 0;
   font-size: clamp(22px, 3vw, 32px);
   font-weight: 700;
   color: #111827;
-  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.92);
 }
+.mhs-standby-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 4px; }
 
-.mhs-standby-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 4px;
-}
-
-/* =========================================================
-   SCREEN 2: KIOSK DASHBOARD (หัวฟ้า-มินต์ + 5 อุปกรณ์ + Bento Vitals)
-   ========================================================= */
-.mhs-kiosk-dash {
-  padding: 20px;
-  background: #F2F2F7;
-  flex: 1;
-}
-
+/* ====== Kiosk Dashboard ====== */
+.mhs-kiosk-dash { padding: 20px; background: #F2F2F7; flex: 1; }
 .mhs-patient-gradient {
   background: linear-gradient(135deg, #1FA2FF 0%, #12D8FA 55%, #29FFC6 100%);
   color: #FFFFFF;
   border-radius: 22px;
-  padding: 22px 24px;
+  padding: 22px 24px 44px;
   text-align: center;
-  box-shadow: 0 12px 28px rgba(18, 216, 250, 0.32);
-  margin-bottom: 18px;
+  box-shadow: 0 12px 28px rgba(18, 216, 250, 0.3);
   position: relative;
 }
-
 .mhs-clock-pill {
   display: inline-block;
   margin-top: 8px;
@@ -514,6 +465,57 @@ table tr:last-child td { border-bottom: none; }
   font-size: 14px;
   font-weight: 600;
   color: #FFFFFF;
+}
+
+.mhs-photo-overlap {
+  display: flex;
+  justify-content: center;
+  margin: -34px auto 16px;
+  position: relative;
+  z-index: 4;
+}
+.mhs-avatar-box {
+  position: relative;
+  width: 96px;
+  height: 106px;
+}
+.mhs-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 4px solid #FFFFFF;
+  background: #E2E8F0;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+}
+.mhs-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  border: 4px solid #FFFFFF;
+  background: #E2E8F0;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+}
+.mhs-cam-btn {
+  position: absolute;
+  bottom: -6px;
+  right: -8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #007AFF;
+  color: #FFFFFF;
+  border: 2.5px solid #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 122, 255, 0.35);
 }
 
 .mhs-guide-strip {
@@ -532,6 +534,7 @@ table tr:last-child td { border-bottom: none; }
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  position: relative;
   box-shadow: var(--shadow-sm);
   transition: all 0.16s ease;
 }
@@ -550,10 +553,20 @@ table tr:last-child td { border-bottom: none; }
   font-size: 19px;
 }
 .mhs-guide-tile strong { font-size: 13px; color: var(--text); }
+.mhs-bt-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #CBD5E1;
+}
+.mhs-bt-dot.paired { background: #10B981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22); }
 
 .mhs-bento-vitals {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 8px;
 }
@@ -584,31 +597,98 @@ table tr:last-child td { border-bottom: none; }
   background: transparent !important;
   box-shadow: none !important;
   padding: 2px 0 !important;
-  font-size: 24px !important;
+  font-size: 26px !important;
   font-weight: 700 !important;
   font-variant-numeric: tabular-nums;
   color: var(--text) !important;
 }
+.mhs-fasting-badge {
+  align-self: flex-start;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #EF4444;
+  color: #FFFFFF;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
 
-.stars { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Child Mode Box */
+.mhs-child-box {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #FFFBEB;
+  border: 1.5px dashed #F59E0B;
+}
+
+/* Emoji 5-Star Rating */
+.stars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .star-btn {
-  flex: 1;
-  min-width: 96px;
-  padding: 10px 12px !important;
-  border-radius: 12px !important;
+  padding: 10px 6px !important;
+  border-radius: 14px !important;
   border: 1.5px solid var(--border) !important;
   background: #FFFFFF !important;
   color: #64748B !important;
   font-weight: 700 !important;
+  font-size: 13px !important;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.16s ease;
 }
+.star-btn i { font-size: 26px; opacity: 0.55; transition: transform 0.16s, opacity 0.16s; }
 .star-btn.selected {
   border-color: #F59E0B !important;
   background: #FFFBEB !important;
   color: #B45309 !important;
+  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.2);
 }
+.star-btn.selected i { opacity: 1; transform: scale(1.18); }
 
-/* ====== Login Stage ====== */
+/* Assessment Alerts */
+.mhs-alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: #F8FAFC;
+  margin-bottom: 10px;
+}
+.mhs-alert-card h4 { margin: 0 0 3px; font-size: 15px; }
+.mhs-alert-card p { margin: 0; font-size: 13.5px; color: #334155; line-height: 1.5; }
+
+/* Floating Bluetooth Button */
+.mhs-bt-fab {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 3500;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 122, 255, 0.25);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  color: #007AFF;
+  font-weight: 700;
+  font-size: 13.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  transition: transform 0.16s;
+}
+.mhs-bt-fab:hover { transform: scale(1.05); }
+
+/* Login Stage */
 .mhs-login-stage {
   position: relative;
   min-height: calc(100vh - 100px);
@@ -627,29 +707,55 @@ table tr:last-child td { border-bottom: none; }
   max-width: 460px;
   background: rgba(255, 255, 255, 0.92) !important;
   backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
   border-radius: 28px !important;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14) !important;
   padding: 34px 30px !important;
 }
 
-/* ====== Native Dialog Modals ====== */
-dialog.mhs-dialog {
-  width: min(92vw, 480px);
-  border: none;
+/* Global Modals (iPadOS Sheet / Dialog) */
+.mhs-modal-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  background: rgba(15, 23, 42, 0.54);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.mhs-modal-bg.open { display: flex; }
+.mhs-modal-box {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  background: #FFFFFF;
   border-radius: 26px;
   padding: 26px;
-  background: #FFFFFF;
-  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+  box-shadow: var(--shadow-lg);
+  position: relative;
   text-align: center;
 }
-dialog.mhs-dialog::backdrop {
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(6px);
+.mhs-modal-box.xl { max-width: 960px; text-align: left; }
+.mhs-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #F1F5F9;
+  color: #64748B;
+  cursor: pointer;
+  font-size: 16px;
 }
+.mhs-modal-close:hover { background: #E2E8F0; color: #0F172A; }
+
 .mhs-dialog-media {
   width: 100%;
-  height: 260px;
+  height: 270px;
   border-radius: 16px;
   background: #F8FAFC;
   border: 1px solid var(--border);
@@ -661,14 +767,41 @@ dialog.mhs-dialog::backdrop {
 }
 .mhs-dialog-media img { width: 100%; height: 100%; object-fit: contain; }
 
-@keyframes mhsAurora {
-  0% { background-position: 0% center; }
-  100% { background-position: 200% center; }
+/* iOS Toggle Switch */
+.mhs-switch { position: relative; display: inline-flex; cursor: pointer; }
+.mhs-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.mhs-switch-track {
+  width: 50px;
+  height: 30px;
+  border-radius: 999px;
+  background: #CBD5E1;
+  position: relative;
+  transition: background 0.2s;
 }
-@keyframes mhsFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+.mhs-switch input:checked + .mhs-switch-track { background: #10B981; }
+.mhs-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s;
 }
+.mhs-switch input:checked + .mhs-switch-track .mhs-switch-thumb { transform: translateX(20px); }
+
+/* Research Charts (Zero-dep CSS/SVG) */
+.mhs-bar-chart { display: flex; align-items: flex-end; justify-content: space-around; height: 210px; gap: 14px; padding: 18px 10px 8px; }
+.mhs-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.mhs-bar-fill { width: 100%; max-width: 58px; border-radius: 10px 10px 4px 4px; transition: height 0.4s ease; min-height: 6px; }
+.mhs-bar-val { font-weight: 800; font-size: 15px; color: #0F172A; }
+.mhs-bar-lbl { font-size: 12.5px; font-weight: 600; color: #64748B; text-align: center; }
+
+@keyframes mhsAurora { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+@keyframes mhsFloat { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+@keyframes mhsPulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(1.25); } 100% { opacity: 1; transform: scale(1); } }
 
 @media (max-width: 1024px) {
   .split-view { grid-template-columns: 1fr !important; }
@@ -679,5 +812,6 @@ dialog.mhs-dialog::backdrop {
 @media (max-width: 720px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .mhs-guide-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .mhs-standby-stage { min-height: 420px; }
+  .stars { grid-template-columns: repeat(3, 1fr); }
+  .mhs-standby-stage { min-height: 410px; }
 }

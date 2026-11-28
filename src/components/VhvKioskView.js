@@ -1,203 +1,241 @@
 export function renderVhvKioskView({ vhvUser, tenantSession = null, offlineCount = 0 }) {
-  const openGuideJs = (title, gif, desc) =>
-    `const d=document.getElementById('mhsGuideDialog');` +
-    `document.getElementById('mhsGuideTitle').textContent='${title}';` +
-    `document.getElementById('mhsGuideImg').src='${gif}';` +
-    `document.getElementById('mhsGuideDesc').textContent='${desc}';` +
-    `if(d&&d.showModal)d.showModal();`;
-
-  const calcBmiJs =
-    `const w=parseFloat(document.getElementById('kioskWeight')?.value);` +
-    `const h=parseFloat(document.getElementById('kioskHeight')?.value)/100;` +
-    `const b=document.getElementById('kioskBmiLive');` +
-    `if(b){b.textContent=(w>0&&h>0)?'BMI '+(w/(h*h)).toFixed(1):'BMI --';}`;
-
-  const hospTitle = tenantSession?.hosp_name
-    ? `${tenantSession.hosp_name} [${tenantSession.hospcode || ''}]`
+  const customLogo = localStorage.getItem('custom_logo') || '/TK.png';
+  const customVideo = localStorage.getItem('custom_video') || '/bg-video.mp4';
+  const hospTitle = tenantSession && tenantSession.hosp_name
+    ? tenantSession.hosp_name + ' [' + (tenantSession.hospcode || '') + ']'
     : 'โรงพยาบาลส่งเสริมสุขภาพตำบล';
 
-  return `
-    <div class="mhs-kiosk-shell">
-      <!-- หัวเว็บ Kiosk สไตล์ต้นฉบับ (โลโก้ + Mini Health Station + ปุ่ม อสม.) -->
-      <div class="mhs-kiosk-header">
-        <img src="/TK.png" alt="โลโก้หน่วยงาน" class="mhs-kiosk-logo" onerror="this.style.display='none'" />
-        <h1 class="mhs-aurora-title">Mini Health Station</h1>
-        <div class="mhs-kiosk-hosp" id="kioskHospLabel">${esc(hospTitle)}</div>
+  const emojis = [
+    { score: 1, icon: 'fa-face-angry', color: '#E53935', label: 'แย่มาก' },
+    { score: 2, icon: 'fa-face-frown', color: '#FB8C00', label: 'ปรับปรุง' },
+    { score: 3, icon: 'fa-face-meh', color: '#FBC02D', label: 'ปานกลาง' },
+    { score: 4, icon: 'fa-face-smile', color: '#7CB342', label: 'ดีมาก' },
+    { score: 5, icon: 'fa-face-laugh-beam', color: '#43A047', label: 'ดีเยี่ยม' }
+  ];
 
-        <div class="mhs-vhv-bar">
-          <span><i class="fa-solid fa-user-nurse"></i> อสม.: ${esc(vhvUser.full_name || vhvUser.name)}</span>
-          <span id="kioskOfflinePill" style="background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:999px;font-size:12px;">
-            ค้างส่ง: ${offlineCount}
-          </span>
-          <button type="button" id="btnSyncOfflineNow" style="background:#FFFFFF;color:#4F46E5;">ซิงก์คิว</button>
-          <button type="button" id="btnVhvLogout" style="background:#EF4444;color:#FFFFFF;">ออก</button>
-        </div>
-      </div>
+  const ratingHtml = emojis.map(function (e) {
+    return '<button type="button" class="star-btn ' + (e.score === 5 ? 'selected' : '') + '" data-score="' + e.score + '">' +
+      '<i class="fa-solid ' + e.icon + '" style="color:' + e.color + ';"></i>' +
+      '<span>' + e.label + ' (' + e.score + ')</span>' +
+      '</button>';
+  }).join('');
 
-      <!-- แถบแจ้งเตือน (มองเห็นได้ทั้งหน้า 1 และหน้า 2) -->
-      <div id="kioskAlert" class="alert-banner" style="display:none;margin:12px 18px 0;"></div>
+  return [
+    '<div class="mhs-kiosk-shell" data-vhv-cid="' + escAttr(vhvUser.cid || '') + '">',
+    '  <div class="mhs-kiosk-header">',
+    '    <img id="mhsCustomLogoImg" src="' + escAttr(customLogo) + '" alt="โลโก้หน่วยงาน" class="mhs-kiosk-logo" onerror="this.style.display=\'none\'" />',
+    '    <h1 class="mhs-aurora-title">Mini Health Station</h1>',
+    '    <div class="mhs-kiosk-hosp" id="kioskHospLabel">' + esc(hospTitle) + '</div>',
+    '    <div class="mhs-vhv-bar">',
+    '      <span class="mhs-online-dot"></span>',
+    '      <span><i class="fa-solid fa-user-nurse"></i> อสม.: ' + esc(vhvUser.full_name || vhvUser.name) + '</span>',
+    '      <span id="kioskOfflinePill" style="background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:999px;font-size:12px;">ค้างส่ง: ' + offlineCount + '</span>',
+    '      <button type="button" id="btnSyncOfflineNow" style="background:#FFFFFF;color:#4F46E5;">ซิงก์คิว</button>',
+    '      <button type="button" onclick="window.__mhs && window.__mhs.openBluetooth()" style="background:#DBEAFE;color:#1D4ED8;"><i class="fa-brands fa-bluetooth-b"></i> อุปกรณ์</button>',
+    '      <button type="button" id="btnVhvLogout" style="background:#EF4444;color:#FFFFFF;">ออก</button>',
+    '    </div>',
+    '  </div>',
 
-      <!-- ==================== SCREEN 1: หน้าจอรอสอดบัตร (เหมือนหน้าต้นฉบับ) ==================== -->
-      <div id="mhsKioskStandby" class="mhs-standby-stage">
-        <video class="mhs-standby-video" autoplay loop muted playsinline>
-          <source src="/bg-video.mp4" type="video/mp4" />
-        </video>
+    '  <div id="kioskAlert" class="alert-banner" style="display:none;margin:12px 18px 0;"></div>',
 
-        <div class="mhs-standby-content">
-          <button type="button" class="mhs-nick-trigger" onclick="document.getElementById('btnKioskReadCard')?.click()" title="แตะเพื่ออ่านบัตรประชาชน (8189)">
-            <img src="/nick.png" alt="กรุณาสอดบัตรประชาชน" />
-          </button>
+    '  <!-- SCREEN 1: หน้าจอรอสอดบัตรต้นฉบับ -->',
+    '  <div id="mhsKioskStandby" class="mhs-standby-stage">',
+    '    <video id="mhsCustomBgVideo" class="mhs-standby-video" autoplay loop muted playsinline>',
+    '      <source src="' + escAttr(customVideo) + '" type="video/mp4" />',
+    '    </video>',
+    '    <div class="mhs-standby-content">',
+    '      <button type="button" class="mhs-nick-trigger" onclick="document.getElementById(\'btnKioskReadCard\')?.click()" title="แตะเพื่ออ่านบัตรประชาชน (8189)">',
+    '        <img src="/nick.png" alt="กรุณาสอดบัตรประชาชน" />',
+    '      </button>',
+    '      <h2 class="mhs-standby-title" id="mhsStandbyStatusText">กรุณาสอดบัตรประชาชน เพื่อเข้ารับบริการ</h2>',
+    '      <div class="mhs-standby-actions">',
+    '        <button type="button" class="btn btn-cyan" style="padding:13px 32px;font-size:16px;" onclick="window.__mhs && window.__mhs.openCidModal()">ไม่มีบัตรประชาชนแตะที่ปุ่มนี้</button>',
+    '        <button type="button" class="btn btn-outline" style="border-radius:999px !important;padding:12px 22px;" onclick="window.__mhs && window.__mhs.setScreen(\'dashboard\')">',
+    '          <i class="fa-solid fa-pen-to-square"></i> เปิดหน้ากรอกค่าวัด',
+    '        </button>',
+    '      </div>',
+    '    </div>',
+    '  </div>',
 
-          <h2 class="mhs-standby-title">กรุณาสอดบัตรประชาชน เพื่อเข้ารับบริการ</h2>
+    '  <!-- SCREEN 2: หน้าจอข้อมูลคนไข้ & คัดกรองเต็มรูปแบบ -->',
+    '  <div id="mhsKioskDashboard" class="mhs-kiosk-dash" style="display:none;">',
+    '    <div class="mhs-patient-gradient">',
+    '      <button type="button" class="btn btn-outline btn-sm" style="position:absolute;top:14px;left:14px;border-radius:999px !important;" onclick="window.__mhs && window.__mhs.setScreen(\'standby\')">',
+    '        <i class="fa-solid fa-chevron-left"></i> กลับหน้าแรก',
+    '      </button>',
+    '      <h2 id="mhsPatientWelcomeName" style="margin:2px 0 0;font-size:24px;font-weight:700;">ยินดีต้อนรับ ผู้รับบริการ</h2>',
+    '      <div class="mhs-clock-pill" id="kioskLiveClock">กำลังโหลดเวลา...</div>',
+    '      <div style="margin-top:6px;font-size:14px;opacity:0.95;">กรุณาเลือกรายการที่ท่านต้องการตรวจวัด หรือกรอกค่าด้านล่าง</div>',
+    '    </div>',
 
-          <div class="mhs-standby-actions">
-            <button type="button" class="btn btn-cyan" style="padding:13px 32px;font-size:16px;" onclick="document.getElementById('mhsCidDialog')?.showModal();document.getElementById('mhsModalCidInput')?.focus();">
-              ไม่มีบัตรประชาชนแตะที่ปุ่มนี้
-            </button>
-            <button type="button" class="btn btn-outline" style="border-radius:999px !important;padding:12px 22px;" onclick="window.__mhsSetKioskScreen?.('dashboard')">
-              <i class="fa-solid fa-pen-to-square"></i> เปิดหน้ากรอกค่าวัด
-            </button>
-          </div>
-        </div>
-      </div>
+    '    <!-- รูปถ่ายผู้ป่วยจาก JHCIS + ปุ่มกล้องถ่ายรูปอัปโหลด -->',
+    '    <div class="mhs-photo-overlap">',
+    '      <div class="mhs-avatar-box">',
+    '        <img id="kioskAvatarImg" class="mhs-avatar-img" style="display:none;" alt="รูปผู้ป่วย" />',
+    '        <div id="kioskAvatarPlaceholder" class="mhs-avatar-placeholder"><i class="fa-solid fa-user"></i></div>',
+    '        <label class="mhs-cam-btn" title="ถ่ายรูปใหม่บันทึกลง JHCIS">',
+    '          <i id="kioskCamIcon" class="fa-solid fa-camera"></i>',
+    '          <input type="file" id="kioskPhotoInput" accept="image/*" capture="user" style="display:none;" />',
+    '        </label>',
+    '      </div>',
+    '    </div>',
 
-      <!-- ==================== SCREEN 2: หน้าจอคัดกรองและกรอกสัญญาณชีพ ==================== -->
-      <div id="mhsKioskDashboard" class="mhs-kiosk-dash" style="display:none;">
-        <div class="mhs-patient-gradient">
-          <button type="button" class="btn btn-outline btn-sm" style="position:absolute;top:14px;left:14px;border-radius:999px !important;" onclick="window.__mhsSetKioskScreen?.('standby')">
-            <i class="fa-solid fa-chevron-left"></i> กลับหน้าสอดบัตร
-          </button>
-          <h2 style="margin:4px 0 0;font-size:24px;font-weight:700;">ข้อมูลผู้รับบริการ &amp; ตรวจวัดสัญญาณชีพ</h2>
-          <div class="mhs-clock-pill" id="kioskLiveClock">กำลังโหลดเวลา...</div>
-        </div>
+    '    <div id="kioskPatientCard" class="alert-banner alert-green" style="display:none;"></div>',
 
-        <div id="kioskPatientCard" class="alert-banner alert-green" style="display:none;"></div>
+    '    <!-- ค้นหา / อ่านบัตร / ประเภทบริการ -->',
+    '    <div class="card" style="margin-bottom:16px;">',
+    '      <div class="grid-3" style="align-items:end;">',
+    '        <div class="field" style="margin-bottom:0;">',
+    '          <label for="kioskCid">เลขบัตรประชาชนผู้รับบริการ (13 หลัก)</label>',
+    '          <input type="text" id="kioskCid" maxlength="13" placeholder="กรอกเลขบัตร 13 หลัก" style="font-weight:700;letter-spacing:1px;" />',
+    '        </div>',
+    '        <div style="display:flex;gap:8px;flex-wrap:wrap;">',
+    '          <button type="button" class="btn btn-primary" id="btnKioskLookup"><i class="fa-solid fa-magnifying-glass"></i> ค้นหา</button>',
+    '          <button type="button" class="btn btn-outline" id="btnKioskReadCard"><i class="fa-solid fa-id-card"></i> อ่านบัตร (8189)</button>',
+    '        </div>',
+    '        <div class="field" style="margin-bottom:0;">',
+    '          <label for="kioskServiceType">ประเภทการคัดกรอง</label>',
+    '          <select id="kioskServiceType">',
+    '            <option value="ncd">Health Station (ผู้ป่วย NCD กลุ่มสีเขียว)</option>',
+    '            <option value="screening">คัดกรอง DM/HT อายุ 35 ปีขึ้นไป</option>',
+    '            <option value="child">ตรวจภาวะโภชนาการเด็ก 0-60 เดือน</option>',
+    '          </select>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
 
-        <!-- ค้นหา / อ่านบัตร / เลือกประเภทคัดกรอง -->
-        <div class="card" style="margin-bottom:16px;">
-          <div class="grid-3" style="align-items:end;">
-            <div class="field" style="margin-bottom:0;">
-              <label for="kioskCid">เลขบัตรประชาชนผู้รับบริการ (13 หลัก)</label>
-              <input type="text" id="kioskCid" maxlength="13" placeholder="กรอกเลขบัตร 13 หลัก" style="font-weight:700;letter-spacing:1px;" />
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button type="button" class="btn btn-primary" id="btnKioskLookup"><i class="fa-solid fa-magnifying-glass"></i> ค้นหา</button>
-              <button type="button" class="btn btn-outline" id="btnKioskReadCard"><i class="fa-solid fa-id-card"></i> อ่านบัตร (8189)</button>
-            </div>
-            <div class="field" style="margin-bottom:0;">
-              <label for="kioskServiceType">ประเภทการคัดกรอง</label>
-              <select id="kioskServiceType">
-                <option value="ncd">คัดกรอง NCD / ติดตามกลุ่มสีเขียว</option>
-                <option value="screening">คัดกรอง DM/HT อายุ 35 ปีขึ้นไป</option>
-                <option value="child">ตรวจภาวะโภชนาการเด็ก 0-60 เดือน</option>
-              </select>
-            </div>
-          </div>
-        </div>
+    '    <!-- ปุ่มตรวจวัด 5 อุปกรณ์ (เปิด Guide GIF + พากย์เสียง + ต่อ Bluetooth) -->',
+    '    <div class="mhs-guide-strip">',
+    '      <button type="button" class="mhs-guide-tile" onclick="window.__mhs && window.__mhs.openGuide(\'o2\')">',
+    '        <span class="mhs-bt-dot" data-bt-dot="o2"></span>',
+    '        <div class="mhs-guide-ico" style="background:#FEFCE8;color:#CA8A04;"><i class="fa-solid fa-hand-holding-heart"></i></div>',
+    '        <strong>ออกซิเจนปลายนิ้ว</strong>',
+    '      </button>',
+    '      <button type="button" class="mhs-guide-tile" onclick="window.__mhs && window.__mhs.openGuide(\'weight\')">',
+    '        <span class="mhs-bt-dot" data-bt-dot="weight"></span>',
+    '        <div class="mhs-guide-ico" style="background:#ECFDF5;color:#059669;"><i class="fa-solid fa-weight-scale"></i></div>',
+    '        <strong>ชั่งน้ำหนัก BLE</strong>',
+    '      </button>',
+    '      <button type="button" class="mhs-guide-tile" onclick="window.__mhs && window.__mhs.openGuide(\'temp\')">',
+    '        <span class="mhs-bt-dot" data-bt-dot="temp"></span>',
+    '        <div class="mhs-guide-ico" style="background:#FFF7ED;color:#EA580C;"><i class="fa-solid fa-temperature-half"></i></div>',
+    '        <strong>วัดอุณหภูมิ BLE</strong>',
+    '      </button>',
+    '      <button type="button" class="mhs-guide-tile" onclick="window.__mhs && window.__mhs.openGuide(\'bp\')">',
+    '        <span class="mhs-bt-dot" data-bt-dot="bp"></span>',
+    '        <div class="mhs-guide-ico" style="background:#EFF6FF;color:#2563EB;"><i class="fa-solid fa-gauge-high"></i></div>',
+    '        <strong>วัดความดันฯ BLE</strong>',
+    '      </button>',
+    '      <button type="button" class="mhs-guide-tile" onclick="window.__mhs && window.__mhs.openGuide(\'sugar\')">',
+    '        <span class="mhs-bt-dot" data-bt-dot="sugar"></span>',
+    '        <div class="mhs-guide-ico" style="background:#FEF2F2;color:#DC2626;"><i class="fa-solid fa-droplet"></i></div>',
+    '        <strong>น้ำตาลปลายนิ้ว</strong>',
+    '      </button>',
+    '    </div>',
 
-        <!-- 5 ปุ่มอุปกรณ์พร้อมภาพสาธิต GIF -->
-        <div class="mhs-guide-strip">
-          <button type="button" class="mhs-guide-tile" onclick="${openGuideJs('วิธีวัดความดันโลหิต', '/guide-bp.gif', 'นั่งพัก 5 นาที หลังพิงพนักพิง เท้าวางราบไม่ไขว่ห้าง วางแขนระดับหัวใจ และไม่พูดคุยขณะวัด')}">
-            <div class="mhs-guide-ico" style="background:#EFF6FF;color:#2563EB;"><i class="fa-solid fa-gauge-high"></i></div>
-            <strong>วัดความดันฯ</strong>
-          </button>
-          <button type="button" class="mhs-guide-tile" onclick="${openGuideJs('วิธีวัดออกซิเจนปลายนิ้ว', '/guide-o2.gif', 'สอดนิ้วชี้ให้สุด วางมือและแขนนิ่งบนโต๊ะระดับอก รอตัวเลข %SpO2 นิ่งก่อนอ่านค่า')}">
-            <div class="mhs-guide-ico" style="background:#FEFCE8;color:#CA8A04;"><i class="fa-solid fa-hand-holding-heart"></i></div>
-            <strong>ออกซิเจนปลายนิ้ว</strong>
-          </button>
-          <button type="button" class="mhs-guide-tile" onclick="${openGuideJs('วิธีชั่งน้ำหนัก', '/guide-weight.gif', 'ถอดรองเท้าและเสื้อผ้าหนัก ยืนตัวตรงเต็มฝ่าเท้าทั้งสองข้างบนเครื่องชั่ง')}">
-            <div class="mhs-guide-ico" style="background:#ECFDF5;color:#059669;"><i class="fa-solid fa-weight-scale"></i></div>
-            <strong>ชั่งน้ำหนัก</strong>
-          </button>
-          <button type="button" class="mhs-guide-tile" onclick="${openGuideJs('วิธีวัดอุณหภูมิ', '/guide-temp.gif', 'เช็ดหน้าผากให้สะอาดและแห้ง จ่อเครื่องวัดห่างจากหน้าผากประมาณ 3 ซม.')}">
-            <div class="mhs-guide-ico" style="background:#FFF7ED;color:#EA580C;"><i class="fa-solid fa-temperature-half"></i></div>
-            <strong>วัดอุณหภูมิ</strong>
-          </button>
-          <button type="button" class="mhs-guide-tile" onclick="${openGuideJs('วิธีตรวจน้ำตาลปลายนิ้ว (DTX)', '/guide-sugar.gif', 'ล้างมือให้สะอาดและเช็ดให้แห้ง เปลี่ยนเข็มใหม่ทุกครั้ง เจาะด้านข้างปลายนิ้ว')}">
-            <div class="mhs-guide-ico" style="background:#FEF2F2;color:#DC2626;"><i class="fa-solid fa-droplet"></i></div>
-            <strong>น้ำตาลปลายนิ้ว</strong>
-          </button>
-        </div>
+    '    <!-- Bento Grid สัญญาณชีพ + SpecialPP + โหมดเด็ก 0-60 เดือน -->',
+    '    <div class="card" style="margin-bottom:16px;">',
+    '      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">',
+    '        <strong style="font-size:16px;"><i class="fa-solid fa-heart-pulse" style="color:#007AFF;margin-right:6px;"></i>บันทึกค่าสัญญาณชีพ</strong>',
+    '        <div style="display:flex;gap:8px;align-items:center;">',
+    '          <span class="pill pill-role" id="kioskBmiLive">BMI --</span>',
+    '          <span class="pill pill-online" id="kioskChildModeTag" style="display:none;">โหมดโภชนาการเด็ก 0-60 เดือน</span>',
+    '        </div>',
+    '      </div>',
 
-        <!-- Bento Grid กรอกค่าสัญญาณชีพ -->
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <strong style="font-size:16px;"><i class="fa-solid fa-heart-pulse" style="color:#007AFF;margin-right:6px;"></i>บันทึกค่าสัญญาณชีพ</strong>
-            <span class="pill pill-role" id="kioskBmiLive">BMI --</span>
-          </div>
+    '      <div class="mhs-bento-vitals">',
+    '        <div class="mhs-vital-card"><label for="kioskHeight"><span>ส่วนสูง</span><span>cm</span></label><input type="number" step="0.1" id="kioskHeight" placeholder="---" /></div>',
+    '        <div class="mhs-vital-card"><label for="kioskWeight"><span>น้ำหนัก</span><span>kg</span></label><input type="number" step="0.1" id="kioskWeight" placeholder="---" /></div>',
+    '        <div class="mhs-vital-card mhs-adult-only"><label for="kioskWaist"><span>รอบเอว</span><span>cm</span></label><input type="number" step="0.1" id="kioskWaist" placeholder="---" /></div>',
+    '        <div class="mhs-vital-card mhs-adult-only"><label for="kioskTemp"><span>อุณหภูมิ</span><span>°C</span></label><input type="number" step="0.1" id="kioskTemp" placeholder="---" /></div>',
+    '        <div class="mhs-vital-card mhs-adult-only"><label for="kioskSpo2"><span>O₂ sat</span><span>%</span></label><input type="number" id="kioskSpo2" placeholder="---" /></div>',
+    '        <div class="mhs-vital-card mhs-adult-only"><label for="kioskPressure"><span>ความดันโลหิต</span><span>mmHg</span></label><input type="text" id="kioskPressure" placeholder="120/80" /></div>',
+    '        <div class="mhs-vital-card mhs-adult-only"><label for="kioskPulse"><span>ชีพจร</span><span>bpm</span></label><input type="number" id="kioskPulse" placeholder="---" /></div>',
+    '        <div class="mhs-vital-card mhs-adult-only">',
+    '          <label for="kioskSugar"><span>น้ำตาลในเลือด (DTX)</span><span>mg/dL</span></label>',
+    '          <input type="number" step="0.1" id="kioskSugar" placeholder="---" />',
+    '          <span id="kioskFastingTag" class="mhs-fasting-badge" style="display:none;" onclick="window.__mhs && window.__mhs.openFastingModal()"></span>',
+    '          <input type="hidden" id="kioskSugarFasting" value="" />',
+    '        </div>',
+    '        <div class="mhs-vital-card"><label for="kioskAgeMonths"><span>อายุเด็ก</span><span>เดือน</span></label><input type="number" id="kioskAgeMonths" placeholder="0-60" /></div>',
+    '      </div>',
 
-          <div class="mhs-bento-vitals">
-            <div class="mhs-vital-card"><label for="kioskWeight"><span>น้ำหนัก</span><span>kg</span></label><input type="number" step="0.1" id="kioskWeight" placeholder="0.0" oninput="${calcBmiJs}" /></div>
-            <div class="mhs-vital-card"><label for="kioskHeight"><span>ส่วนสูง</span><span>cm</span></label><input type="number" step="0.1" id="kioskHeight" placeholder="0.0" oninput="${calcBmiJs}" /></div>
-            <div class="mhs-vital-card"><label for="kioskPressure"><span>ความดัน</span><span>mmHg</span></label><input type="text" id="kioskPressure" placeholder="120/80" /></div>
-            <div class="mhs-vital-card"><label for="kioskPulse"><span>ชีพจร</span><span>bpm</span></label><input type="number" id="kioskPulse" placeholder="75" /></div>
-            <div class="mhs-vital-card"><label for="kioskTemp"><span>อุณหภูมิ</span><span>°C</span></label><input type="number" step="0.1" id="kioskTemp" placeholder="36.5" /></div>
-            <div class="mhs-vital-card"><label for="kioskWaist"><span>รอบเอว</span><span>cm</span></label><input type="number" step="0.1" id="kioskWaist" placeholder="80" /></div>
-            <div class="mhs-vital-card"><label for="kioskSugar"><span>น้ำตาล DTX</span><span>mg/dL</span></label><input type="number" step="0.1" id="kioskSugar" placeholder="--" /></div>
-            <div class="mhs-vital-card"><label for="kioskAgeMonths"><span>อายุเด็ก</span><span>เดือน</span></label><input type="number" id="kioskAgeMonths" placeholder="0-60" /></div>
-          </div>
+    '      <!-- โซนเด็ก 0-60 เดือน (แสดงอัตโนมัติเมื่ออายุ <= 60 เดือน หรือเลือกประเภทเด็ก) -->',
+    '      <div id="mhsChildNutritionBox" class="mhs-child-box" style="display:none;">',
+    '        <strong style="color:#B45309;display:block;margin-bottom:10px;"><i class="fa-solid fa-baby"></i> ข้อมูลโภชนาการเด็ก 0-60 เดือน (ประเมินอัตโนมัติตามเกณฑ์ JHCIS)</strong>',
+    '        <div class="grid-4">',
+    '          <div class="field" style="margin:0;"><label>เส้นรอบศีรษะ (cm)</label><input type="number" step="0.1" id="kioskHeadCircum" placeholder="---" /></div>',
+    '          <div class="field" style="margin:0;"><label>นน./อายุ (nlevel)</label><input type="text" id="kioskNlevelText" readonly value="นน.ตามเกณฑ์ (3)" /></div>',
+    '          <div class="field" style="margin:0;"><label>สส./อายุ (nlevel2)</label><input type="text" id="kioskNlevel2Text" readonly value="สูงตามเกณฑ์ (3)" /></div>',
+    '          <div class="field" style="margin:0;"><label>นน./สส. (nlevel3)</label><input type="text" id="kioskNlevel3Text" readonly value="สมส่วน (4)" /></div>',
+    '        </div>',
+    '        <input type="hidden" id="kioskNlevel" value="3" />',
+    '        <input type="hidden" id="kioskNlevel2" value="3" />',
+    '        <input type="hidden" id="kioskNlevel3" value="4" />',
+    '        <input type="hidden" id="kioskGrowdevelop" value="1" />',
+    '      </div>',
 
-          <!-- ความพึงพอใจ 5 ดาว -->
-          <div style="margin-top:16px;padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">
-            <label style="margin-bottom:8px;display:block;font-size:13px;font-weight:700;">ประเมินความพึงพอใจการรับบริการ (1 - 5 ดาว)</label>
-            <div class="stars" id="ratingStars">
-              ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="star-btn ${n === 5 ? 'selected' : ''}" data-score="${n}">${'★'.repeat(n)} (${n})</button>`).join('')}
-            </div>
-          </div>
+    '      <!-- โซน SpecialPP บุหรี่ / สุรา สำหรับผู้ใหญ่ -->',
+    '      <div id="mhsAdultRiskBox" class="grid-2 mhs-adult-only" style="margin-top:16px;">',
+    '        <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">',
+    '          <label style="font-weight:700;font-size:14px;display:block;margin-bottom:8px;"><i class="fa-solid fa-smoking" style="color:#64748B;margin-right:6px;"></i>ประวัติสูบบุหรี่ *</label>',
+    '          <select id="kioskSmokeStatus">',
+    '            <option value="">-- กรุณาเลือก --</option>',
+    '            <option value="ไม่สูบ">ไม่สูบ (1B52)</option>',
+    '            <option value="เคยสูบแต่เลิกแล้ว">เคยสูบแต่เลิกแล้ว (1B51)</option>',
+    '            <option value="ยังสูบอยู่">ยังสูบอยู่</option>',
+    '          </select>',
+    '          <div id="kioskSmokeSubBox" style="display:none;margin-top:10px;padding:10px;background:#FFFFFF;border-radius:12px;border:1px dashed #CBD5E1;">',
+    '            <div class="field"><label>1. ปริมาณที่สูบ (มวน/วัน)</label><select id="kioskSmokeAmount"><option value="1B509">-- ไม่ระบุปริมาณ --</option><option value="1B501">1-10 มวน/วัน</option><option value="1B502">11-19 มวน/วัน</option><option value="1B503">20 มวนขึ้นไป/วัน</option></select></div>',
+    '            <div class="field"><label>2. สูบมวนแรกหลังตื่นนอน</label><select id="kioskSmokeWake"><option value="">-- ไม่ระบุ --</option><option value="1B504">น้อยกว่า 30 นาที</option><option value="1B505">30 นาที - 1 ชม.</option><option value="1B506">1 ชม. ขึ้นไป</option></select></div>',
+    '            <div class="field" style="margin:0;"><label>3. การให้คำปรึกษา</label><select id="kioskSmokeAdvice"><option value="">-- ไม่ระบุ --</option><option value="1B530">ให้คำแนะนำสั้นๆ (1B530)</option></select></div>',
+    '          </div>',
+    '        </div>',
 
-          <div style="margin-top:18px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
-            <button type="button" class="btn btn-outline" onclick="window.__mhsSetKioskScreen?.('standby')">กลับหน้าสอดบัตร</button>
-            <button type="button" class="btn btn-green" style="padding:14px 30px;font-size:16px;min-width:240px;" id="btnSubmitKiosk">
-              <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูลคัดกรองลง JHCIS
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    '        <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">',
+    '          <label style="font-weight:700;font-size:14px;display:block;margin-bottom:8px;"><i class="fa-solid fa-wine-glass" style="color:#64748B;margin-right:6px;"></i>ประวัติดื่มสุรา *</label>',
+    '          <select id="kioskAlcoholStatus">',
+    '            <option value="">-- กรุณาเลือก --</option>',
+    '            <option value="ไม่ดื่ม">ไม่ดื่ม (1B600)</option>',
+    '            <option value="เคยดื่มแต่เลิกแล้ว">เคยดื่มแต่เลิกแล้ว (1B601)</option>',
+    '            <option value="ยังดื่มอยู่">ยังดื่มอยู่</option>',
+    '          </select>',
+    '          <div id="kioskAlcoholSubBox" style="display:none;margin-top:10px;padding:10px;background:#FFFFFF;border-radius:12px;border:1px dashed #CBD5E1;">',
+    '            <div class="field" style="margin:0;"><label>การให้คำแนะนำ/ปรึกษา</label><select id="kioskAlcoholAdvice"><option value="">-- ไม่ระบุ --</option><option value="1B611">การให้คำปรึกษาแบบสั้นๆ (1B611)</option></select></div>',
+    '          </div>',
+    '        </div>',
+    '      </div>',
 
-    <!-- Modal: กรอกเลข 13 หลัก (เมื่อแตะปุ่ม ไม่มีบัตรประชาชนแตะที่ปุ่มนี้) -->
-    <dialog id="mhsCidDialog" class="mhs-dialog" onclick="if(event.target===this)this.close()">
-      <div style="width:62px;height:62px;border-radius:18px;background:#EFF6FF;color:#007AFF;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px;">
-        <i class="fa-solid fa-id-card"></i>
-      </div>
-      <h3 style="margin:0 0 6px;font-size:21px;">ค้นหาประวัติผู้รับบริการ</h3>
-      <p class="muted" style="margin:0 0 16px;">กรุณากรอกเลขประจำตัวประชาชน 13 หลัก</p>
-      <input
-        type="tel"
-        id="mhsModalCidInput"
-        maxlength="13"
-        placeholder="●●●●●●●●●●●●●"
-        style="text-align:center;font-size:24px;font-weight:700;letter-spacing:2px;padding:14px;margin-bottom:16px;"
-        oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('mhsModalCidConfirm')?.click();}"
-      />
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('mhsCidDialog')?.close()">ยกเลิก</button>
-        <button
-          type="button"
-          id="mhsModalCidConfirm"
-          class="btn btn-primary"
-          onclick="const v=(document.getElementById('mhsModalCidInput')?.value||'').trim();const inp=document.getElementById('kioskCid');if(inp)inp.value=v;document.getElementById('mhsCidDialog')?.close();window.__mhsSetKioskScreen?.('dashboard');if(v.length===13)document.getElementById('btnKioskLookup')?.click();"
-        >
-          ยืนยันและค้นหา
-        </button>
-      </div>
-    </dialog>
+    '      <!-- ประเมินความพึงพอใจอิโมจิ 5 ระดับ -->',
+    '      <div style="margin-top:16px;padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">',
+    '        <label style="margin-bottom:10px;display:block;font-size:13.5px;font-weight:700;">ประเมินความพึงพอใจการรับบริการ</label>',
+    '        <div class="stars" id="ratingStars">' + ratingHtml + '</div>',
+    '      </div>',
+    '    </div>',
 
-    <!-- Modal: แสดงภาพสาธิตวิธีวัด (GIF) -->
-    <dialog id="mhsGuideDialog" class="mhs-dialog" onclick="if(event.target===this)this.close()">
-      <h3 id="mhsGuideTitle" style="margin:0;font-size:20px;">วิธีตรวจวัด</h3>
-      <div class="mhs-dialog-media">
-        <img id="mhsGuideImg" src="/guide-bp.gif" alt="วิธีตรวจวัด" />
-      </div>
-      <p id="mhsGuideDesc" style="margin:0 0 18px;font-size:15px;color:#334155;line-height:1.6;"></p>
-      <button type="button" class="btn btn-primary" style="width:100%;padding:12px;" onclick="document.getElementById('mhsGuideDialog')?.close()">
-        เข้าใจแล้ว · ปิดหน้าต่าง
-      </button>
-    </dialog>
-  `;
+    '    <!-- การ์ดประเมินภาวะสุขภาพ + AI พยาบาล + ปุ่มบันทึก/Telemed -->',
+    '    <div class="card">',
+    '      <h3 class="card-title"><span><i class="fa-solid fa-stethoscope" style="color:#007AFF;margin-right:8px;"></i>ผลการประเมินภาวะสุขภาพ &amp; AI พยาบาล</span></h3>',
+    '      <div id="kioskChronicBox" class="mhs-alert-card">',
+    '        <i class="fa-solid fa-notes-medical" style="font-size:24px;color:#64748B;margin-top:2px;"></i>',
+    '        <div><h4>โรคประจำตัว</h4><p id="kioskChronicText" style="font-weight:700;color:#475569;">ยังไม่ได้ค้นหาประวัติผู้รับบริการ</p></div>',
+    '      </div>',
+    '      <div id="kioskAiCard" class="mhs-alert-card" style="display:none;background:#EFF6FF;">',
+    '        <i id="kioskAiIcon" class="fa-solid fa-user-doctor" style="font-size:24px;color:#007AFF;margin-top:2px;"></i>',
+    '        <div><h4 style="color:#1D4ED8;">AI พยาบาลประเมินผล</h4><p id="kioskAiText" style="font-weight:600;">กำลังวิเคราะห์...</p></div>',
+    '      </div>',
+    '      <div id="kioskHealthAlerts"></div>',
+
+    '      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:16px;">',
+    '        <button type="button" class="btn btn-green" style="padding:14px;font-size:16px;" id="btnSubmitKiosk"><i class="fa-solid fa-cloud-arrow-up"></i> บันทึกข้อมูลและจัดคิวลง JHCIS</button>',
+    '        <button type="button" class="btn btn-blue" style="padding:14px;font-size:15px;" onclick="window.__mhs && window.__mhs.openTelemed()"><i class="fa-solid fa-video"></i> ปรึกษาแพทย์ (Telemedicine)</button>',
+    '        <button type="button" class="btn btn-outline" style="padding:14px;font-size:15px;" onclick="window.__mhs && window.__mhs.openCidModal()"><i class="fa-solid fa-user-plus"></i> ค้นหาผู้ป่วยรายใหม่</button>',
+    '      </div>',
+    '    </div>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
 }
 
-function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function escAttr(s) { return esc(s).replace(/"/g, '&quot;'); }
