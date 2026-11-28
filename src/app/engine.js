@@ -126,23 +126,28 @@ export async function cloudFetch(endpoint, opts = {}) {
   }
   const lic = t && (t.license_key || t.licenseKey || '');
   if (endpoint !== '/api/license/verify' && (!t || !t.hospcode || !lic)) {
-    return { ok: false, status: 400, data: { message: 'ไม่พบ License Key ในเซสชันเดิม กรุณากด "ออกจากสถานบริการ" ในแท็บตั้งค่าระบบ แล้วล็อกอินด้วยรหัส 5 หลัก + License Key ใหม่อีกครั้ง' } };
+    return {
+      ok: false,
+      status: 400,
+      data: { message: 'ไม่พบ License Key ในเซสชันเดิม กรุณากด "ออกจากสถานบริการ" ในแท็บตั้งค่าระบบ แล้วล็อกอินใหม่' }
+    };
   }
   const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
-  if (t && t.hospcode) {
-    headers['x-hospcode'] = t.hospcode;
-    headers['x-tenant-hospcode'] = t.hospcode;
+  if (t && t.hospcode) headers['x-hospcode'] = String(t.hospcode);
+  if (lic) headers['x-license-key'] = String(lic);
+  if (AppState.adminPin) headers['x-tenant-admin-pin'] = String(AppState.adminPin);
+
+  try {
+    const res = await fetch(AppState.cloudUrl.replace(/\/+$/, '') + endpoint, Object.assign({}, opts, { headers }));
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  } catch (err) {
+    return {
+      ok: false,
+      status: 0,
+      data: { message: 'เชื่อมต่อระบบกลางไม่สำเร็จ (Network/CORS): ' + (err && err.message ? err.message : String(err)) }
+    };
   }
-  if (lic) {
-    headers['x-license-key'] = lic;
-    headers['x-tenant-license-key'] = lic;
-  }
-  if (AppState.adminPin) {
-    headers['x-tenant-admin-pin'] = AppState.adminPin;
-  }
-  const res = await fetch(AppState.cloudUrl.replace(/\/+$/, '') + endpoint, Object.assign({}, opts, { headers }));
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, status: res.status, data };
 }
 
 export async function jhcisFetch(endpoint, opts = {}) {

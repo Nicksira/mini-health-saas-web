@@ -927,22 +927,46 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (act === 'adm-add-user') {
-    const pinVal = (document.getElementById('admCloudPin').value || '').trim();
+    const pinEl = document.getElementById('admCloudPin');
+    const pinVal = (pinEl && pinEl.value ? pinEl.value : AppState.adminPin || '').trim();
     if (!pinVal) { alert('กรุณากรอกรหัส PIN Admin หน่วยงานก่อนบันทึก'); return; }
     AppState.adminPin = pinVal;
     sessionStorage.setItem('mhs_admin_pin', pinVal);
-    const cid = (document.getElementById('nuCid').value || '').replace(/\D/g, '');
-    const full_name = (document.getElementById('nuName').value || '').trim();
-    const roles = [document.getElementById('nuStaff').checked && 'staff', document.getElementById('nuVhv').checked && 'vhv', document.getElementById('nuAdmin').checked && 'tenant_admin'].filter(Boolean).join(',');
-    if (cid.length !== 13 || !full_name || !roles) { alert('กรอกเลขบัตร 13 หลัก ชื่อ-สกุล และเลือกบทบาทให้ครบ'); return; }
-    const r = await cloudFetch('/api/tenant/users', { method: 'POST', body: JSON.stringify({ cid, full_name, role: roles, position: '', village_no: '', phone: '' }) });
-    if (r.ok) {
-      alert('✅ บันทึกบุคลากรสำเร็จ');
-      const u = await cloudFetch('/api/tenant/users');
-      if (u.ok) AppState.tenantUsers = u.data.users || u.data.data || [];
-      render();
-    } else {
-      alert('บันทึกไม่สำเร็จ: ' + ((r.data && (r.data.message || r.data.error)) || ('HTTP ' + r.status)));
+
+    const cidEl = document.getElementById('nuCid');
+    const nameEl = document.getElementById('nuName');
+    const cid = (cidEl ? cidEl.value : '').replace(/\D/g, '');
+    const full_name = (nameEl ? nameEl.value : '').trim();
+    const roles = [
+      document.getElementById('nuStaff')?.checked && 'staff',
+      document.getElementById('nuVhv')?.checked && 'vhv',
+      document.getElementById('nuAdmin')?.checked && 'tenant_admin'
+    ].filter(Boolean).join(',');
+
+    if (cid.length !== 13 || !full_name || !roles) {
+      alert('กรอกเลขบัตร 13 หลัก ชื่อ-สกุล และเลือกบทบาทให้ครบ');
+      return;
+    }
+
+    const oldTxt = el.textContent;
+    el.disabled = true;
+    el.textContent = 'กำลังบันทึก...';
+    try {
+      const r = await cloudFetch('/api/tenant/users', {
+        method: 'POST',
+        body: JSON.stringify({ cid, full_name, role: roles, position: '', village_no: '', phone: '' })
+      });
+      if (r.ok) {
+        alert('✅ บันทึกบุคลากรสำเร็จ');
+        const u = await cloudFetch('/api/tenant/users');
+        if (u.ok) AppState.tenantUsers = u.data.users || u.data.data || [];
+        render();
+      } else {
+        alert('บันทึกไม่สำเร็จ: ' + ((r.data && (r.data.message || r.data.error)) || ('HTTP ' + r.status)));
+      }
+    } finally {
+      el.disabled = false;
+      el.textContent = oldTxt;
     }
     return;
   }
@@ -952,7 +976,7 @@ document.addEventListener('click', async (e) => {
     AppState.adminPin = pinVal;
     sessionStorage.setItem('mhs_admin_pin', pinVal);
     if (!AppState.excelRows.length) { alert('กรุณาเลือกไฟล์ CSV ก่อน'); return; }
-    const r = await cloudFetch('/api/tenant/users/bulk', { method: 'POST', body: JSON.stringify({ users: AppState.excelRows }) });
+    const r = await cloudFetch('/api/tenant/users/bulk-import', { method: 'POST', body: JSON.stringify({ users: AppState.excelRows }) });
     if (r.ok) {
       alert('✅ นำเข้าสำเร็จ ' + AppState.excelRows.length + ' รายชื่อ');
       const u = await cloudFetch('/api/tenant/users');
