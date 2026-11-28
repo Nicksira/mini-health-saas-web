@@ -37,7 +37,7 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
     '    <div style="display:flex;gap:6px;flex-wrap:wrap;">',
     '      <button type="button" class="btn btn-outline btn-sm" onclick="window.__mhs && window.__mhs.openBluetooth()"><i class="fa-brands fa-bluetooth-b" style="color:#007AFF;"></i> Bluetooth</button>',
     '      <button type="button" class="btn btn-outline btn-sm" onclick="window.__mhs && window.__mhs.openTelemed()"><i class="fa-solid fa-video" style="color:#0EA5E9;"></i> Telemed</button>',
-    '      <button type="button" class="btn btn-outline btn-sm" id="btnRefreshQueue"><i class="fa-solid fa-rotate"></i> รีเฟรชคิว</button>',
+    '      <button type="button" class="btn btn-outline btn-sm" onclick="window.__mhs && window.__mhs.switchMode(\'vhv\')"><i class="fa-solid fa-house-medical"></i> หน้า Kiosk</button><button type="button" class="btn btn-outline btn-sm" id="btnRefreshQueue"><i class="fa-solid fa-rotate"></i> รีเฟรชคิว</button>',
     '      <button type="button" class="btn btn-primary btn-sm" id="btnNewVisitMode"><i class="fa-solid fa-plus"></i> เปิดคิวใหม่</button>',
     '      <button type="button" class="btn btn-outline btn-sm" id="btnStaffLogout"><i class="fa-solid fa-right-from-bracket"></i> ออก</button>',
     '    </div>',

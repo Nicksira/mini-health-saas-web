@@ -28,6 +28,13 @@ const state = {
   idleTimer: null,
   isPollingCard: false,
   isHuntingBp: false,
+  secretClicks: 0,
+  secretClickTimer: null,
+  pendingCidLookup: null,
+  pendingLookupTimer: null,
+  modeButtons: { staff: null, vhv: null, admin: null },
+  cloudBaseUrl: 'https://mini-health-saas-cloud.sirapop-nick.workers.dev',
+  licenseKey: '',
   devices: {
     bp: localStorage.getItem('dev_bp') || '',
     o2: localStorage.getItem('dev_o2') || '',
@@ -52,6 +59,8 @@ function scanConnectorFromStorage() {
           state.apiSecret = String(t.api_secret);
           if (t.hospcode) state.hospcode = String(t.hospcode);
           if (t.hosp_name) state.hospName = String(t.hosp_name);
+          if (t.license_key) state.licenseKey = String(t.license_key);
+          if (obj.cloudBaseUrl || t.cloud_base_url) state.cloudBaseUrl = String(obj.cloudBaseUrl || t.cloud_base_url).replace(/\/+$/, '');
           return { apiUrl: state.apiUrl, apiSecret: state.apiSecret };
         }
       } catch (e) {}
@@ -584,7 +593,9 @@ async function pollSmartcardStandby() {
           if (imgStr.indexOf('base64,') >= 0) imgStr = imgStr.split('base64,')[1];
           applyPatientPhoto('data:image/jpeg;base64,' + imgStr.replace(/\s/g, ''));
         }
-        window.__mhs.setScreen('dashboard');
+        state.pendingCidLookup = String(cid);
+        const stTxt = document.getElementById('mhsStandbyStatusText');
+        if (stTxt) stTxt.textContent = 'กำลังตรวจสอบข้อมูลผู้รับบริการใน JHCIS...';
         const lookupBtn = document.getElementById('btnKioskLookup');
         if (lookupBtn) lookupBtn.click();
         // ยิง NHSO Authen อัตโนมัติแบบเบื้องหลัง
@@ -734,7 +745,7 @@ function injectGlobalModals() {
     '    <input type="tel" id="mhsModalCidInput" maxlength="13" placeholder="●●●●●●●●●●●●●" style="text-align:center;font-size:24px;font-weight:700;letter-spacing:2px;padding:14px;margin-bottom:14px;" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')" />',
     '    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">',
     '      <button type="button" class="btn btn-outline" onclick="document.getElementById(\'mhsCidModal\').classList.remove(\'open\')">ยกเลิก</button>',
-    '      <button type="button" class="btn btn-primary" id="mhsModalCidGo">ยืนยันและค้นหา</button>',
+    '      <button type="button" class="btn btn-primary" id="mhsModalCidGo"><i class="fa-solid fa-magnifying-glass"></i> ค้นหาผู้ป่วย</button>',
     '    </div>',
     '  </div>',
     '</div>',
@@ -831,6 +842,21 @@ function injectGlobalModals() {
     '    <button type="button" class="btn btn-green" style="width:100%;padding:12px;" onclick="window.__mhs.saveBpFollowUp()"><i class="fa-solid fa-floppy-disk"></i> บันทึกผลการติดตาม</button>',
     '  </div>',
     '</div>'
+    '<!-- Modal 9: Admin Secret Password (กดโลโก้ 5 ครั้ง) -->',
+    '<div id="mhsAdminPassModal" class="mhs-modal-bg" onclick="if(event.target===this)this.classList.remove(\'open\')">',
+    '  <div class="mhs-modal-box" style="max-width:380px;">',
+    '    <button type="button" class="mhs-modal-close" onclick="document.getElementById(\'mhsAdminPassModal\').classList.remove(\'open\')"><i class="fa-solid fa-xmark"></i></button>',
+    '    <div style="width:62px;height:62px;border-radius:18px;background:#FEF2F2;color:#EF4444;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;"><i class="fa-solid fa-lock"></i></div>',
+    '    <h3 style="margin:0 0 6px;font-size:20px;">เข้าสู่โหมดผู้ดูแลระบบ &amp; ตั้งค่า</h3>',
+    '    <p class="muted" style="margin:0 0 14px;">กรุณาใส่รหัสผ่าน Admin หรือ PIN หน่วยงาน</p>',
+    '    <input type="password" id="mhsAdminPassInput" placeholder="••••••••" style="text-align:center;font-size:22px;font-weight:700;letter-spacing:4px;padding:12px;margin-bottom:8px;" onkeydown="if(event.key===\'Enter\'){event.preventDefault();window.__mhs && window.__mhs.submitAdminPassword();}" />',
+    '    <div id="mhsAdminPassErr" style="min-height:22px;color:#DC2626;font-size:13.5px;font-weight:700;margin-bottom:12px;"></div>',
+    '    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">',
+    '      <button type="button" class="btn btn-outline" onclick="document.getElementById(\'mhsAdminPassModal\').classList.remove(\'open\')">ยกเลิก</button>',
+    '      <button type="button" class="btn btn-primary" id="mhsAdminPassBtn" onclick="window.__mhs && window.__mhs.submitAdminPassword()">ยืนยัน</button>',
+    '    </div>',
+    '  </div>',
+    '</div>'
   ].join('\n');
   document.body.appendChild(root);
 
@@ -842,14 +868,32 @@ function injectGlobalModals() {
   if (cidGo) {
     cidGo.addEventListener('click', function () {
       const val = (cidIn ? cidIn.value : '').trim();
-      const target = document.getElementById('kioskCid');
-      if (target) target.value = val;
-      document.getElementById('mhsCidModal').classList.remove('open');
-      window.__mhs.setScreen('dashboard');
-      if (val.length === 13) {
-        const btn = document.getElementById('btnKioskLookup');
-        if (btn) btn.click();
+      const errEl = document.getElementById('mhsModalCidErr');
+      if (val.length !== 13) {
+        if (errEl) errEl.textContent = 'กรุณากรอกเลขประจำตัวประชาชนให้ครบ 13 หลัก';
+        return;
       }
+      if (errEl) errEl.textContent = '';
+      cidGo.disabled = true;
+      cidGo.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังค้นหา...';
+      state.pendingCidLookup = val;
+      if (state.pendingLookupTimer) clearTimeout(state.pendingLookupTimer);
+      state.pendingLookupTimer = setTimeout(function () {
+        if (state.pendingCidLookup) {
+          state.pendingCidLookup = null;
+          cidGo.disabled = false;
+          cidGo.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ค้นหาผู้ป่วย';
+          if (errEl) errEl.textContent = 'ค้นหาไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ Local Connector';
+        }
+      }, 9000);
+
+      const target = document.getElementById('kioskCid');
+      if (target) {
+        target.value = val;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      const btn = document.getElementById('btnKioskLookup');
+      if (btn) btn.click();
     });
   }
   refreshBluetoothUI();
@@ -904,7 +948,20 @@ function installFetchInterceptor() {
       } catch (e) {}
     }
 
-    const res = await window.__mhsOrigFetch(input, opts);
+    let res;
+    try {
+      res = await window.__mhsOrigFetch(input, opts);
+    } catch (netErr) {
+      if (url.indexOf('/jhcis-api/patient/') >= 0) {
+        state.pendingCidLookup = null;
+        if (state.pendingLookupTimer) clearTimeout(state.pendingLookupTimer);
+        const cidGoBtn = document.getElementById('mhsModalCidGo');
+        const cidErr = document.getElementById('mhsModalCidErr');
+        if (cidGoBtn) { cidGoBtn.disabled = false; cidGoBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ค้นหาผู้ป่วย'; }
+        if (cidErr) cidErr.textContent = 'ไม่สามารถเชื่อมต่อ Local Connector / JHCIS ได้';
+      }
+      throw netErr;
+    }
 
     try {
       const clone = res.clone();
@@ -916,9 +973,20 @@ function installFetchInterceptor() {
           if (t && t.hospcode) state.hospcode = String(t.hospcode);
           if (t && t.hosp_name) state.hospName = String(t.hosp_name);
         }).catch(function () {});
-      } else if (url.indexOf('/jhcis-api/patient/') >= 0 && res.ok) {
+      } else if (url.indexOf('/jhcis-api/patient/') >= 0) {
+        const cidGoBtn = document.getElementById('mhsModalCidGo');
+        const cidErr = document.getElementById('mhsModalCidErr');
+        const stTxt = document.getElementById('mhsStandbyStatusText');
+        const resetLookupUi = function () {
+          state.pendingCidLookup = null;
+          if (state.pendingLookupTimer) clearTimeout(state.pendingLookupTimer);
+          if (cidGoBtn) { cidGoBtn.disabled = false; cidGoBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ค้นหาผู้ป่วย'; }
+          if (stTxt) stTxt.textContent = 'กรุณาสอดบัตรประชาชน เพื่อเข้ารับบริการ';
+        };
+
         clone.json().then(function (d) {
-          if (d && d.success && d.data) {
+          if (res.ok && d && d.success && d.data) {
+            resetLookupUi();
             const cidMatch = url.match(/\/patient\/(\d{13})/);
             const cid = cidMatch ? cidMatch[1] : (d.data.cid || '');
             state.lastPatient = Object.assign({}, d.data, { cid: cid });
@@ -931,13 +999,32 @@ function installFetchInterceptor() {
             }
             const ageIn = document.getElementById('kioskAgeMonths');
             if (ageIn && d.data.age_months != null) ageIn.value = d.data.age_months;
+            const cidModal = document.getElementById('mhsCidModal');
+            if (cidModal) cidModal.classList.remove('open');
+            if (document.getElementById('mhsKioskDashboard')) {
+              window.__mhs.setScreen('dashboard');
+            }
             fetchPatientPhoto(cid);
             updateChildModeUI();
+          } else {
+            resetLookupUi();
+            const msg = (d && d.message) ? d.message : 'ไม่พบข้อมูลผู้ป่วยในระบบ JHCIS กรุณาตรวจสอบเลขบัตร 13 หลัก';
+            if (cidErr) cidErr.textContent = msg;
           }
-        }).catch(function () {});
+        }).catch(function () {
+          resetLookupUi();
+          if (cidErr) cidErr.textContent = res.status === 404
+            ? 'ไม่พบข้อมูลผู้ป่วยในระบบ JHCIS กรุณาตรวจสอบเลขบัตร 13 หลัก'
+            : 'เชื่อมต่อฐานข้อมูล JHCIS ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+        });
       } else if (url.indexOf('/jhcis-api/queue') >= 0 && opts.method && opts.method.toUpperCase() === 'POST' && res.ok) {
         if (document.getElementById('mhsKioskDashboard')) {
           speak('บันทึกข้อมูลและจัดคิวเข้าสู่ระบบสำเร็จ ขอบคุณที่ใช้บริการค่ะ');
+          setTimeout(function () {
+            state.lastPatient = null;
+            applyPatientPhoto(null);
+            window.__mhs.setScreen('standby');
+          }, 2500);
         }
       } else if (url.indexOf('/jhcis-api/vhv-stats') >= 0 && res.ok) {
         clone.json().then(function (d) {
@@ -987,7 +1074,11 @@ export function initSuperFeatures() {
     openCidModal: function () {
       const m = document.getElementById('mhsCidModal');
       const inp = document.getElementById('mhsModalCidInput');
+      const err = document.getElementById('mhsModalCidErr');
+      const go = document.getElementById('mhsModalCidGo');
       if (inp) inp.value = '';
+      if (err) err.textContent = '';
+      if (go) { go.disabled = false; go.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ค้นหาผู้ป่วย'; }
       if (m) m.classList.add('open');
       if (inp) setTimeout(function () { inp.focus(); }, 60);
     },
@@ -1151,7 +1242,14 @@ export function initSuperFeatures() {
       const f = input.files && input.files[0];
       if (!f) return;
       const r = new FileReader();
-      r.onloadend = function () { localStorage.setItem('custom_logo', r.result); alert('✅ อัปเดตโลโก้เรียบร้อย'); };
+      r.onloadend = function () {
+        localStorage.setItem('custom_logo', r.result);
+        const pv = document.getElementById('adminLogoPreview');
+        if (pv) pv.src = r.result;
+        const lg = document.getElementById('mhsCustomLogoImg');
+        if (lg) { lg.src = r.result; lg.style.display = 'block'; }
+        alert('✅ เปลี่ยนรูปโลโก้เรียบร้อยแล้ว');
+      };
       r.readAsDataURL(f);
     },
     handleVideoUpload: function (input) {
@@ -1160,7 +1258,12 @@ export function initSuperFeatures() {
       if (f.size > 6 * 1024 * 1024) { alert('⚠️ ไฟล์วิดีโอใหญ่เกิน 5-6MB'); return; }
       const r = new FileReader();
       r.onloadend = function () {
-        try { localStorage.setItem('custom_video', r.result); alert('✅ อัปเดตวิดีโอพื้นหลังเรียบร้อย'); }
+        try {
+          localStorage.setItem('custom_video', r.result);
+          const pv = document.getElementById('adminVideoPreview');
+          if (pv) { pv.src = r.result; pv.load(); pv.play().catch(function(){}); }
+          alert('✅ เปลี่ยนวิดีโอพื้นหลังเรียบร้อยแล้ว');
+        }
         catch (e) { alert('⚠️ ไฟล์ใหญ่เกินความจุ LocalStorage'); }
       };
       r.readAsDataURL(f);
@@ -1168,7 +1271,10 @@ export function initSuperFeatures() {
     resetMedia: function () {
       localStorage.removeItem('custom_logo');
       localStorage.removeItem('custom_video');
-      alert('✅ คืนค่าโลโก้และวิดีโอเริ่มต้นแล้ว');
+      localStorage.removeItem('custom_hosp_name');
+      const lp = document.getElementById('adminLogoPreview'); if (lp) lp.src = '/TK.png';
+      const vp = document.getElementById('adminVideoPreview'); if (vp) { vp.src = '/bg-video.mp4'; vp.load(); }
+      alert('✅ คืนค่าโลโก้ วิดีโอ และชื่อหน่วยงานเริ่มต้นแล้ว');
     }
   };
 
@@ -1217,14 +1323,54 @@ export function initSuperFeatures() {
   resetIdleTimer();
 
   // Timers: Clock + Auto-switch Standby->Dashboard + Smartcard Poll + BP Auto-hunt + Heartbeat
-  setInterval(function () {
-    const card = document.getElementById('kioskPatientCard');
-    const standby = document.getElementById('mhsKioskStandby');
-    if (card && standby && standby.style.display !== 'none') {
-      if (card.style.display !== 'none' && card.textContent.trim().length > 0) {
-        window.__mhs.setScreen('dashboard');
+  function syncTopbarAndHosp() {
+    // 1. ซ่อนปุ่มเลือกโหมด (โหมดเจ้าหน้าที่ / โหมด อสม. / Admin หน่วยงาน) บนแถบหัวเว็บ
+    document.querySelectorAll('header button, .topbar button, .app-header button, nav button').forEach(function (btn) {
+      const txt = (btn.textContent || '').trim();
+      if (txt.indexOf('โหมดเจ้าหน้าที่') >= 0) {
+        state.modeButtons.staff = btn;
+        btn.style.setProperty('display', 'none', 'important');
+      } else if (txt.indexOf('โหมด อสม') >= 0 || txt.indexOf('Kiosk') >= 0) {
+        state.modeButtons.vhv = btn;
+        btn.style.setProperty('display', 'none', 'important');
+      } else if (txt.indexOf('Admin หน่วยงาน') >= 0 || txt.indexOf('Admin') === 0) {
+        state.modeButtons.admin = btn;
+        btn.style.setProperty('display', 'none', 'important');
+      }
+    });
+
+    // ผูก 5-click ลับไว้ที่ชื่อหน่วยงานบนแถบหัวเว็บด้านซ้ายด้วย (เผื่ออยู่หน้าอื่นที่ไม่มีโลโก้ Kiosk)
+    const brandBlock = document.querySelector('header > div:first-child, .topbar > div:first-child, .app-header > div:first-child');
+    if (brandBlock && !brandBlock.dataset.mhsSecretBound) {
+      brandBlock.dataset.mhsSecretBound = '1';
+      brandBlock.style.cursor = 'pointer';
+      brandBlock.addEventListener('click', function () { window.__mhs && window.__mhs.handleSecretLogoClick(); });
+    }
+
+    // 2. ซิงก์ชื่อ รพ.สต. จริงใส่ #kioskHospLabel
+    const hospEl = document.getElementById('kioskHospLabel');
+    if (hospEl) {
+      const customName = localStorage.getItem('custom_hosp_name');
+      if (customName) {
+        if (hospEl.textContent !== customName) hospEl.textContent = customName;
+      } else {
+        scanConnectorFromStorage();
+        let resolved = state.hospName ? (state.hospName + (state.hospcode ? ' [' + state.hospcode + ']' : '')) : '';
+        if (!resolved && brandBlock) {
+          const firstLine = (brandBlock.innerText || '').split('\n')[0].trim();
+          if (firstLine && firstLine.indexOf('Mini Health') === -1) resolved = firstLine;
+        }
+        if (resolved && hospEl.textContent.trim() === 'โรงพยาบาลส่งเสริมสุขภาพตำบล') {
+          hospEl.textContent = resolved;
+        }
       }
     }
+  }
+
+  syncTopbarAndHosp();
+
+  setInterval(function () {
+    syncTopbarAndHosp();
     const clockEl = document.getElementById('kioskLiveClock');
     if (clockEl) {
       const d = new Date();
