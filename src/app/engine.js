@@ -94,7 +94,7 @@ export const AppState = {
     sugar: localStorage.getItem('dev_sugar') || '',
     o2: localStorage.getItem('dev_o2') || ''
   },
-  customLogo: localStorage.getItem('custom_logo') || '/TK.png',
+  customLogo: localStorage.getItem('custom_logo') || '/logo.png',
   customVideo: localStorage.getItem('custom_video') || '/bg-video.mp4',
   customHospName: localStorage.getItem('custom_hosp_name') || '',
   modal: null, // null | vhv_login | manual_cid | bt | guide | telemed | emergency | confirm_save | rating | admin_pass | preset | vhv_logs | bp_follow | sheet_icd | sheet_drug | sheet_ncd | sheet_allergy | sheet_dose | sugar_fasting

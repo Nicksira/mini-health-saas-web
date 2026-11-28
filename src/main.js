@@ -912,7 +912,7 @@ document.addEventListener('click', async (e) => {
     if (np) localStorage.setItem('mhs_admin_password', np);
     alert('✅ บันทึกการตั้งค่าเรียบร้อยแล้ว'); render(); return;
   }
-  if (act === 'adm-reset-media') { localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/TK.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; alert('✅ คืนค่าเดิมแล้ว'); render(); return; }
+  if (act === 'adm-reset-media') { localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; alert('✅ คืนค่าเดิมแล้ว'); render(); return; }
   if (act === 'switch-tenant') { if (confirm('ยืนยันออกจากเซสชันสถานบริการนี้?')) { clearTenantSession(); AppState.tenant = null; AppState.user = null; AppState.view = 'tenant_login'; render(); } return; }
   if (act === 'adm-load-cloud') {
     AppState.adminPin = (document.getElementById('admCloudPin').value || '').trim();
