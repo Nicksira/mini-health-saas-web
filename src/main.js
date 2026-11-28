@@ -290,7 +290,7 @@ function bindTenantLoginEvents() {
     try {
       const hospcode = document.getElementById('tlHospcode').value.trim();
       const licenseKey = document.getElementById('tlLicenseKey').value.trim();
-      const cloudBaseUrl = document.getElementById('tlCloudUrl').value.trim() || CLOUD_BASE_URL;
+      const cloudBaseUrl = (document.getElementById("tlCloudUrl")?.value || "https://mini-health-saas-cloud.sirapop-nick.workers.dev").trim() || CLOUD_BASE_URL;
 
       const session = await verifyTenantLicense({ hospcode, licenseKey, clientType: 'pwa', cloudBaseUrl });
       state.tenantSession = { ...session, cloud_base_url: cloudBaseUrl, license_key: licenseKey };
