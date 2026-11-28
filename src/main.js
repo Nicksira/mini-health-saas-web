@@ -41,20 +41,7 @@ function triggerAI() {
   if (aiDebounce) clearTimeout(aiDebounce);
   aiDebounce = setTimeout(async () => {
     AppState.aiLoading = true; render();
-if (AppState.tenant) {
-  syncBrandingFromConnector().then((changed) => { if (changed) render(); });
-}
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && AppState.tenant) {
-    syncBrandingFromConnector().then((changed) => { if (changed) render(); });
-  }
-});
-setInterval(() => {
-  if (AppState.tenant && (AppState.view === 'home' || AppState.view === 'kiosk') && !AppState.modal) {
-    syncBrandingFromConnector().then((changed) => { if (changed) render(); });
-  }
-}, 30000);
-    try {
+try {
       const r = await jhcisFetch('/jhcis-api/ai-analyze', { method: 'POST', body: JSON.stringify({ vitals: AppState.vitals }) });
       AppState.aiResponse = (r.data && r.data.message) || 'ประเมินผลเสร็จสิ้น';
       if (AppState.view === 'kiosk') speak(AppState.aiResponse);
@@ -1250,3 +1237,22 @@ window.addEventListener('beforeunload', () => sendHeartbeat('offline', true));
 window.addEventListener('pagehide', () => sendHeartbeat('offline', true));
 
 render();
+
+// === [CLOUD BRANDING STARTUP SYNC] ===
+function __runCloudBrandingSync() {
+  if (!AppState.tenant) return;
+  syncBrandingFromConnector().then((changed) => {
+    if (changed) render();
+  });
+}
+__runCloudBrandingSync();
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) __runCloudBrandingSync();
+});
+window.addEventListener('focus', () => __runCloudBrandingSync());
+setInterval(() => {
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag !== 'INPUT' && tag !== 'TEXTAREA' && AppState.tenant && (AppState.view === 'home' || AppState.view === 'kiosk' || AppState.view === 'admin') && !AppState.modal) {
+    __runCloudBrandingSync();
+  }
+}, 20000);
