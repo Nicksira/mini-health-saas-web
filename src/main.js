@@ -19,6 +19,24 @@ function resetPatientState() {
 }
 
 function sendHeartbeat(status, keepalive) {
+  try {
+    const _t = AppState.tenant;
+    const _u = AppState.user;
+    const _lic = _t && (_t.license_key || _t.licenseKey || '');
+    if (_t && _t.hospcode && _lic && _u && _u.cid) {
+      fetch(String(AppState.cloudUrl).replace(/\/+$/, '') + '/api/tenant/vhv-heartbeat', {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-hospcode': String(_t.hospcode),
+          'x-license-key': String(_lic),
+        },
+        body: JSON.stringify({ cid: _u.cid, name: _u.name || '', status: status || 'online' }),
+      }).catch(() => {});
+    }
+  } catch (_) {}
+
   if (!AppState.user || !AppState.tenant || !AppState.tenant.api_url) return;
   try {
     fetch(String(AppState.tenant.api_url).replace(/\/+$/, '') + '/jhcis-api/vhv-heartbeat', {
@@ -216,6 +234,29 @@ async function executeSaveToJHCIS() {
   try {
     const r = await jhcisFetch('/jhcis-api/queue', { method: 'POST', body: JSON.stringify(payload) });
     if (!r.ok) throw new Error('HTTP ' + r.status);
+    try {
+      const _pt = AppState.patient || {};
+      const _vt = AppState.vitals || {};
+      const _us = AppState.user || {};
+      cloudFetch('/api/tenant/kiosk-log', {
+        method: 'POST',
+        body: JSON.stringify({
+          cid: _pt.cid || '',
+          patient_name: ((_pt.fname || '') + ' ' + (_pt.lname || '')).trim() || 'ไม่ทราบชื่อ',
+          sex: _pt.sex || '',
+          age_years: _pt.age_months != null ? Math.floor(Number(_pt.age_months) / 12) : null,
+          vhv_cid: _us.cid || '',
+          vhv_name: _us.name || '',
+          weight: Number(_vt.weight) || 0,
+          height: Number(_vt.height) || 0,
+          sys_dia: _vt.sysDia || '',
+          pulse: Number(_vt.pulse) || 0,
+          temp: Number(_vt.temp) || 0,
+          waist: Number(_vt.waist) || 0,
+          sugar: Number(_vt.sugar) || 0,
+        }),
+      }).catch(() => {});
+    } catch (_) {}
     isSaving = false;
     if (isStaff) {
       if (r.data && r.data.visitno) AppState.activeVisitNo = r.data.visitno;
@@ -918,7 +959,7 @@ document.addEventListener('click', async (e) => {
   if (act === 'kiosk-save' || act === 'staff-save') { if (validateBeforeSave()) { AppState.modal = 'confirm_save'; render(); } return; }
   if (act === 'confirm-save-now') { executeSaveToJHCIS(); return; }
   if (act === 'submit-rating') {
-    try { await jhcisFetch('/jhcis-api/rating', { method: 'POST', body: JSON.stringify({ cid: AppState.patient.cid, visitno: null, score: AppState.ratingScore }) }); } catch (x) {}
+    try { await cloudFetch('/api/tenant/rating', { method: 'POST', body: JSON.stringify({ cid: (AppState.patient && AppState.patient.cid) || '', score: AppState.ratingScore }) }); } catch (x) {}
     AppState.modal = null; resetPatientState(); AppState.view = 'home'; render(); return;
   }
   if (act === 'toggle-sb') { if (window.innerWidth < 900) AppState.sidebarMobileOpen = !AppState.sidebarMobileOpen; else AppState.sidebarCollapsed = !AppState.sidebarCollapsed; render(); return; }
@@ -959,7 +1000,7 @@ document.addEventListener('click', async (e) => {
     render(); return;
   }
   if (act === 'adm-reset-media') { await resetBrandingOnConnector(); localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; alert('✅ คืนค่าโลโก้และวิดีโอเริ่มต้นในทุกเครื่องแล้ว'); render(); return; }
-  if (act === 'switch-tenant') { if (confirm('ยืนยันออกจากเซสชันสถานบริการนี้?')) { clearTenantSession(); localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; AppState.tenant = null; AppState.user = null; AppState.view = 'tenant_login'; render(); } return; }
+  if (act === 'switch-tenant') { if (confirm('ยืนยันออกจากเซสชันสถานบริการนี้?')) { clearTenantSession(); AppState.vhvStats = []; AppState.analytics = null; AppState.bpData = []; localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; AppState.tenant = null; AppState.user = null; AppState.view = 'tenant_login'; render(); } return; }
   if (act === 'adm-load-cloud') {
     AppState.adminPin = (document.getElementById('admCloudPin').value || '').trim();
     sessionStorage.setItem('mhs_admin_pin', AppState.adminPin);
@@ -1052,9 +1093,9 @@ document.addEventListener('click', async (e) => {
     let nt = (document.getElementById('bpFollowIn').value || '').trim();
     if (AppState.referStatus === 'refer') nt = '[REFER] ' + nt;
     else if (AppState.referStatus === 'norefer') nt = '[NOREFER] ' + nt;
-    await jhcisFetch('/jhcis-api/bp-followup', { method: 'POST', body: JSON.stringify({ log_id: AppState.selectedBp.log_id, note: nt }) });
+    await cloudFetch('/api/tenant/bp-followup', { method: 'POST', body: JSON.stringify({ log_id: AppState.selectedBp.log_id, note: nt }) });
     AppState.modal = null;
-    const r = await jhcisFetch('/jhcis-api/bp-monitor?date=' + AppState.bpDate);
+    const r = await cloudFetch('/api/tenant/bp-monitor?date=' + AppState.bpDate);
     if (r.ok && r.data.success) AppState.bpData = r.data.data || [];
     render(); return;
   }
@@ -1122,14 +1163,14 @@ document.addEventListener('click', async (e) => {
   if (el.dataset.pickDose) { const ta = document.getElementById('shDoseTxt'); if (ta) ta.value = el.dataset.pickDose; return; }
   if (el.dataset.atab) {
     AppState.adminTab = el.dataset.atab; render();
-    if (el.dataset.atab === 'vhv') jhcisFetch('/jhcis-api/vhv-stats').then((r) => { if (r.ok && r.data.success) { AppState.vhvStats = r.data.data || []; render(); } });
-    if (el.dataset.atab === 'analytics') jhcisFetch('/jhcis-api/analytics').then((r) => { if (r.ok && r.data.success) { AppState.analytics = r.data.data; render(); } });
-    if (el.dataset.atab === 'bp') jhcisFetch('/jhcis-api/bp-monitor?date=' + AppState.bpDate).then((r) => { if (r.ok && r.data.success) { AppState.bpData = r.data.data || []; render(); } });
+    if (el.dataset.atab === 'vhv') cloudFetch('/api/tenant/vhv-stats').then((r) => { if (r.ok && r.data.success) { AppState.vhvStats = r.data.data || []; render(); } });
+    if (el.dataset.atab === 'analytics') cloudFetch('/api/tenant/analytics').then((r) => { if (r.ok && r.data.success) { AppState.analytics = r.data.data; render(); } });
+    if (el.dataset.atab === 'bp') cloudFetch('/api/tenant/bp-monitor?date=' + AppState.bpDate).then((r) => { if (r.ok && r.data.success) { AppState.bpData = r.data.data || []; render(); } });
     return;
   }
   if (el.dataset.vhvCid) {
     AppState.selectedVhvName = el.dataset.vhvName; AppState.vhvLogs = []; AppState.modal = 'vhv_logs'; render();
-    const r = await jhcisFetch('/jhcis-api/vhv-logs/' + el.dataset.vhvCid + '?t=' + Date.now());
+    const r = await cloudFetch('/api/tenant/vhv-logs/' + el.dataset.vhvCid + '?t=' + Date.now());
     if (r.ok && r.data.success) { AppState.vhvLogs = r.data.data || []; render(); }
     return;
   }
@@ -1213,7 +1254,7 @@ document.addEventListener('change', async (e) => {
     AppState.excelRows = lines.slice(1).map((ln) => { const c = ln.split(',').map((s) => s.trim().replace(/^"|"$/g, '')); return { cid: c[0], full_name: c[1], role: c[2] || 'vhv' }; }).filter((x) => x.cid && x.cid.length === 13);
     alert('อ่านรายชื่อจากไฟล์ได้ ' + AppState.excelRows.length + ' รายชื่อ'); return;
   }
-  if (el.id === 'admBpDate') { AppState.bpDate = el.value; const r = await jhcisFetch('/jhcis-api/bp-monitor?date=' + el.value); if (r.ok && r.data.success) AppState.bpData = r.data.data || []; render(); return; }
+  if (el.id === 'admBpDate') { AppState.bpDate = el.value; const r = await cloudFetch('/api/tenant/bp-monitor?date=' + el.value); if (r.ok && r.data.success) AppState.bpData = r.data.data || []; render(); return; }
   if (el.dataset.icdDx != null) { AppState.icd10List[Number(el.dataset.icdDx)].dxtype = el.value; return; }
   if (el.dataset.icdConti != null) { AppState.icd10List[Number(el.dataset.icdConti)].conti = el.checked ? '1' : '0'; return; }
   if (el.dataset.icdDate != null) { AppState.icd10List[Number(el.dataset.icdDate)].appointDate = el.value; }
@@ -1254,7 +1295,7 @@ setInterval(() => {
 
 setInterval(() => { if (AppState.view === 'home' && AppState.user && !AppState.modal && !isPollingCard) { isPollingCard = true; readSmartcard(true).finally(() => { isPollingCard = false; }); } }, 2500);
 setInterval(() => { if (AppState.view === 'staff') fetchTodayQueue(); }, 15000);
-setInterval(() => { if (AppState.view === 'admin' && AppState.adminTab === 'vhv') jhcisFetch('/jhcis-api/vhv-stats').then((r) => { if (r.ok && r.data.success) { AppState.vhvStats = r.data.data || []; render(); } }); }, 3000);
+setInterval(() => { if (AppState.view === 'admin' && AppState.adminTab === 'vhv') cloudFetch('/api/tenant/vhv-stats').then((r) => { if (r.ok && r.data.success) { AppState.vhvStats = r.data.data || []; render(); } }); }, 3000);
 setInterval(() => { sendHeartbeat('online', false); }, 10000);
 setInterval(async () => {
   if (isHuntingBP || (AppState.view !== 'kiosk' && AppState.view !== 'staff') || !navigator.bluetooth || !navigator.bluetooth.getDevices) return;
