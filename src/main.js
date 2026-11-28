@@ -2,7 +2,7 @@ import './styles/full-original.css';
 import {
   AppState, DEFAULT_CLOUD_URL, DOSE_PRESETS,
   esc, escAttr, getHospDisplay, saveTenantSession, clearTenantSession,
-  cloudFetch, jhcisFetch, speak, recalcVitals, analyzeHealth, parseBPData, connectBLE, formatThaiNow
+  cloudFetch, jhcisFetch, speak, recalcVitals, analyzeHealth, parseBPData, connectBLE, formatThaiNow, syncBrandingFromConnector, uploadBrandingFile, saveBrandingMeta, resetBrandingOnConnector
 } from './app/engine.js';
 
 const rootEl = document.getElementById('app') || document.getElementById('root') || document.body;
@@ -41,6 +41,19 @@ function triggerAI() {
   if (aiDebounce) clearTimeout(aiDebounce);
   aiDebounce = setTimeout(async () => {
     AppState.aiLoading = true; render();
+if (AppState.tenant) {
+  syncBrandingFromConnector().then((changed) => { if (changed) render(); });
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && AppState.tenant) {
+    syncBrandingFromConnector().then((changed) => { if (changed) render(); });
+  }
+});
+setInterval(() => {
+  if (AppState.tenant && (AppState.view === 'home' || AppState.view === 'kiosk') && !AppState.modal) {
+    syncBrandingFromConnector().then((changed) => { if (changed) render(); });
+  }
+}, 30000);
     try {
       const r = await jhcisFetch('/jhcis-api/ai-analyze', { method: 'POST', body: JSON.stringify({ vitals: AppState.vitals }) });
       AppState.aiResponse = (r.data && r.data.message) || 'ประเมินผลเสร็จสิ้น';
@@ -262,10 +275,10 @@ function handlePhotoUploadFile(file) {
 function renderTenantLogin() {
   return [
     '<div class="tl-stage">',
-    '  <video class="tl-video" autoplay loop muted playsinline><source src="' + escAttr(AppState.customVideo) + '" type="video/mp4" /></video>',
+    '  <video class="tl-video" autoplay loop muted playsinline><source src="/bg-video.mp4" type="video/mp4" /></video>',
     '  <div class="tl-card">',
     '    <div style="text-align:center;margin-bottom:18px;">',
-    '      <img src="' + escAttr(AppState.customLogo) + '" style="height:74px;max-width:260px;object-fit:contain;" onerror="this.style.display=\'none\'" />',
+    '      <img src="/logo.png" style="height:96px;max-width:260px;object-fit:contain;" onerror="this.style.display=\'none\'" />',
     '      <h1 class="aurora-text" style="font-size:30px;">Mini Health Station</h1>',
     '      <p style="margin:4px 0 0;color:#64748b;font-size:14px;">เข้าสู่ระบบสถานบริการ (Multi-Tenant SaaS)</p>',
     '    </div>',
@@ -582,7 +595,7 @@ function renderAdminDashboard() {
       '<h3 style="margin:0 0 16px;color:#007AFF;">⚙️ ตั้งค่าระบบ Kiosk &amp; สื่อหน้าแรก</h3>',
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">',
       '  <div style="padding:14px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;"><label style="font-weight:700;display:block;margin-bottom:8px;">เปลี่ยนรูปโลโก้หน่วยงาน</label><img src="' + escAttr(AppState.customLogo) + '" style="height:70px;object-fit:contain;display:block;margin-bottom:8px;" /><input type="file" id="admLogoFile" accept="image/*" /></div>',
-      '  <div style="padding:14px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;"><label style="font-weight:700;display:block;margin-bottom:8px;">เปลี่ยนวิดีโอพื้นหลังหน้าแรก (MP4 ≤ 5MB)</label><video src="' + escAttr(AppState.customVideo) + '" muted autoplay loop playsinline style="width:100%;height:70px;object-fit:cover;border-radius:8px;margin-bottom:8px;"></video><input type="file" id="admVideoFile" accept="video/mp4" /></div>',
+      '  <div style="padding:14px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;"><label style="font-weight:700;display:block;margin-bottom:8px;">เปลี่ยนวิดีโอพื้นหลังหน้าแรก (MP4 ≤ 30MB · ซิงค์ทุกเครื่องอัตโนมัติ)</label><video src="' + escAttr(AppState.customVideo) + '" muted autoplay loop playsinline style="width:100%;height:70px;object-fit:cover;border-radius:8px;margin-bottom:8px;"></video><input type="file" id="admVideoFile" accept="video/mp4" /></div>',
       '</div>',
       '<div class="tl-field"><label>ชื่อหน่วยงาน / โรงพยาบาล</label><input id="admHospName" value="' + escAttr(getHospDisplay()) + '" /></div>',
       '<div class="tl-field"><label>เปลี่ยนรหัสผ่านเข้าหน้า Admin (กดโลโก้ 5 ครั้ง · เว้นว่างหากไม่เปลี่ยน)</label><input type="password" id="admNewPass" placeholder="ค่าเริ่มต้น: Admin00000" /></div>',
@@ -797,6 +810,9 @@ document.addEventListener('submit', async (e) => {
       if (!r.ok || !r.data.valid || !r.data.tenant) { errEl.textContent = (r.data && r.data.message) || 'License ไม่ถูกต้องหรือหมดอายุ'; return; }
       AppState.tenant = Object.assign({}, r.data.tenant, { license_key });
       saveTenantSession(AppState.tenant);
+      localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name');
+      AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = '';
+      await syncBrandingFromConnector();
       AppState.view = 'home'; render();
     } catch (ex) { errEl.textContent = 'เชื่อมต่อเซิร์ฟเวอร์กลางไม่สำเร็จ'; }
   }
@@ -910,10 +926,12 @@ document.addEventListener('click', async (e) => {
     const np = (document.getElementById('admNewPass').value || '').trim();
     if (hn) { AppState.customHospName = hn; localStorage.setItem('custom_hosp_name', hn); }
     if (np) localStorage.setItem('mhs_admin_password', np);
-    alert('✅ บันทึกการตั้งค่าเรียบร้อยแล้ว'); render(); return;
+    const synced = await saveBrandingMeta(hn);
+    alert(synced ? '✅ บันทึกและซิงค์การตั้งค่าไปยังทุกเครื่องเรียบร้อยแล้ว' : '✅ บันทึกในเครื่องนี้แล้ว (ซิงค์ไม่สำเร็จ — เช็กว่าอัปเดตและรีสตาร์ท Local Connector แล้ว)');
+    render(); return;
   }
-  if (act === 'adm-reset-media') { localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; alert('✅ คืนค่าเดิมแล้ว'); render(); return; }
-  if (act === 'switch-tenant') { if (confirm('ยืนยันออกจากเซสชันสถานบริการนี้?')) { clearTenantSession(); AppState.tenant = null; AppState.user = null; AppState.view = 'tenant_login'; render(); } return; }
+  if (act === 'adm-reset-media') { await resetBrandingOnConnector(); localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; alert('✅ คืนค่าโลโก้และวิดีโอเริ่มต้นในทุกเครื่องแล้ว'); render(); return; }
+  if (act === 'switch-tenant') { if (confirm('ยืนยันออกจากเซสชันสถานบริการนี้?')) { clearTenantSession(); localStorage.removeItem('custom_logo'); localStorage.removeItem('custom_video'); localStorage.removeItem('custom_hosp_name'); AppState.customLogo = '/logo.png'; AppState.customVideo = '/bg-video.mp4'; AppState.customHospName = ''; AppState.tenant = null; AppState.user = null; AppState.view = 'tenant_login'; render(); } return; }
   if (act === 'adm-load-cloud') {
     AppState.adminPin = (document.getElementById('admCloudPin').value || '').trim();
     sessionStorage.setItem('mhs_admin_pin', AppState.adminPin);
@@ -1144,10 +1162,22 @@ document.addEventListener('change', async (e) => {
     return;
   }
   if (el.id === 'inpPhotoUpload') { handlePhotoUploadFile(el.files && el.files[0]); return; }
-  if (el.id === 'admLogoFile' && el.files[0]) { const r = new FileReader(); r.onloadend = () => { AppState.customLogo = r.result; localStorage.setItem('custom_logo', r.result); render(); }; r.readAsDataURL(el.files[0]); return; }
+  if (el.id === 'admLogoFile' && el.files[0]) {
+    const file = el.files[0];
+    if (file.size > 10 * 1024 * 1024) { alert('⚠️ ไฟล์โลโก้ใหญ่เกิน 10 MB'); return; }
+    const up = await uploadBrandingFile('logo', file);
+    if (up.ok) { alert('✅ อัปเดตโลโก้หน่วยงานแล้ว เครื่องอื่นจะเปลี่ยนตามอัตโนมัติ'); render(); }
+    else { alert('❌ อัปโหลดโลโก้ไม่สำเร็จ: ' + up.message); }
+    return;
+  }
   if (el.id === 'admVideoFile' && el.files[0]) {
-    if (el.files[0].size > 6 * 1024 * 1024) { alert('⚠️ ไฟล์วิดีโอใหญ่เกิน 5-6 MB'); return; }
-    const r = new FileReader(); r.onloadend = () => { AppState.customVideo = r.result; try { localStorage.setItem('custom_video', r.result); } catch (x) {} render(); }; r.readAsDataURL(el.files[0]); return;
+    const file = el.files[0];
+    if (file.size > 30 * 1024 * 1024) { alert('⚠️ ไฟล์วิดีโอใหญ่เกิน 30 MB'); return; }
+    alert('⏳ กำลังอัปโหลดวิดีโอขึ้นเซิร์ฟเวอร์หน่วยงาน กรุณารอสักครู่...');
+    const up = await uploadBrandingFile('video', file);
+    if (up.ok) { alert('✅ อัปเดตวิดีโอพื้นหลังแล้ว เครื่องอื่นจะเปลี่ยนตามอัตโนมัติ'); render(); }
+    else { alert('❌ อัปโหลดวิดีโอไม่สำเร็จ: ' + up.message); }
+    return;
   }
   if (el.id === 'admCsvFile' && el.files[0]) {
     const txt = await el.files[0].text();

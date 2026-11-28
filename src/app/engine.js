@@ -401,3 +401,92 @@ export async function fetchTenantBranding() {
     console.error('Failed to fetch branding from cloud:', err);
   }
 }
+
+export async function syncBrandingFromConnector() {
+  const t = AppState.tenant;
+  if (!t || !t.api_url) return false;
+  const base = String(t.api_url).replace(/\/+$/, '');
+  try {
+    const res = await fetch(base + '/public-branding/meta?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return false;
+    const d = await res.json().catch(() => null);
+    if (!d || !d.success) return false;
+
+    const nextLogo = d.hasLogo && d.logoUrl ? (base + d.logoUrl) : '/logo.png';
+    const nextVideo = d.hasVideo && d.videoUrl ? (base + d.videoUrl) : '/bg-video.mp4';
+    const nextHosp = d.hospName || '';
+
+    const changed =
+      AppState.customLogo !== nextLogo ||
+      AppState.customVideo !== nextVideo ||
+      AppState.customHospName !== nextHosp;
+
+    AppState.customLogo = nextLogo;
+    AppState.customVideo = nextVideo;
+    AppState.customHospName = nextHosp;
+
+    if (d.hasLogo && d.logoUrl) localStorage.setItem('custom_logo', nextLogo);
+    else localStorage.removeItem('custom_logo');
+    if (d.hasVideo && d.videoUrl) localStorage.setItem('custom_video', nextVideo);
+    else localStorage.removeItem('custom_video');
+    if (nextHosp) localStorage.setItem('custom_hosp_name', nextHosp);
+    else localStorage.removeItem('custom_hosp_name');
+
+    return changed;
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function uploadBrandingFile(kind, file) {
+  const t = AppState.tenant;
+  if (!t || !t.api_url) return { ok: false, message: 'ยังไม่ได้เชื่อมต่อ Local Connector' };
+  const base = String(t.api_url).replace(/\/+$/, '');
+  const ext = (file.name && file.name.includes('.') ? file.name.split('.').pop() : (kind === 'video' ? 'mp4' : 'png')).toLowerCase();
+  try {
+    const res = await fetch(base + '/jhcis-api/branding/' + kind + '?ext=' + encodeURIComponent(ext), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'x-api-key': t.api_secret || '',
+      },
+      body: file,
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.success) {
+      return { ok: false, message: d.message || ('HTTP ' + res.status + ' — กรุณาตรวจสอบว่าอัปเดตและรีสตาร์ท Local Connector แล้ว') };
+    }
+    if (kind === 'logo' && d.logoUrl) {
+      AppState.customLogo = base + d.logoUrl;
+      localStorage.setItem('custom_logo', AppState.customLogo);
+    }
+    if (kind === 'video' && d.videoUrl) {
+      AppState.customVideo = base + d.videoUrl;
+      localStorage.setItem('custom_video', AppState.customVideo);
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: 'เชื่อมต่อ Local Connector ไม่สำเร็จ: ' + (e.message || e) };
+  }
+}
+
+export async function saveBrandingMeta(hospName) {
+  try {
+    const r = await jhcisFetch('/jhcis-api/branding/meta', {
+      method: 'POST',
+      body: JSON.stringify({ hospName: hospName || '' }),
+    });
+    return Boolean(r.ok && r.data && r.data.success);
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function resetBrandingOnConnector() {
+  try {
+    const r = await jhcisFetch('/jhcis-api/branding', { method: 'DELETE' });
+    return Boolean(r.ok && r.data && r.data.success);
+  } catch (e) {
+    return false;
+  }
+}
