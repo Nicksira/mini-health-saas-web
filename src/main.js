@@ -37,6 +37,7 @@ import { renderTenantLoginView } from './components/TenantLoginView.js';
 import { renderStaffClinicalWorkspace } from './components/StaffClinicalWorkspace.js';
 import { renderVhvKioskView } from './components/VhvKioskView.js';
 import { renderTenantAdminView } from './components/TenantAdminView.js';
+import './styles/apple-ui.css';
 
 const appEl = document.getElementById('app');
 const ADMIN_PIN_SESSION_KEY = 'mhs_admin_pin_v3';
@@ -1575,3 +1576,41 @@ if ('serviceWorker' in navigator) {
 
 renderApp();
 refreshConnectorStatus();
+
+// === Kiosk Screen Switcher (Standby Video <-> Patient Dashboard) ===
+window.__mhsSetKioskScreen = function (mode) {
+  const standby = document.getElementById('mhsKioskStandby');
+  const dash = document.getElementById('mhsKioskDashboard');
+  if (!standby || !dash) return;
+  if (mode === 'dashboard') {
+    standby.style.display = 'none';
+    dash.style.display = 'block';
+  } else {
+    dash.style.display = 'none';
+    standby.style.display = 'flex';
+  }
+};
+
+// สลับเข้าหน้าคัดกรองอัตโนมัติเมื่ออ่านบัตรหรือค้นหาคนไข้สำเร็จ + อัปเดตนาฬิกาไทย
+setInterval(() => {
+  const card = document.getElementById('kioskPatientCard');
+  const standby = document.getElementById('mhsKioskStandby');
+  if (card && standby && standby.style.display !== 'none') {
+    const visible = card.style.display !== 'none' && card.textContent.trim().length > 0;
+    if (visible) window.__mhsSetKioskScreen('dashboard');
+  }
+  const clockEl = document.getElementById('kioskLiveClock');
+  if (clockEl) {
+    const d = new Date();
+    const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    clockEl.textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543} เวลา ${hh}:${mm}:${ss} น.`;
+  }
+  const hospEl = document.getElementById('kioskHospLabel');
+  const headerStrong = document.querySelector('header strong, .topbar strong, .app-header strong');
+  if (hospEl && headerStrong && hospEl.textContent.trim() === 'โรงพยาบาลส่งเสริมสุขภาพตำบล') {
+    hospEl.textContent = headerStrong.textContent.trim();
+  }
+}, 500);

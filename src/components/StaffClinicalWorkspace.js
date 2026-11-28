@@ -7,25 +7,29 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
   const staffName = staffUser.full_name || staffUser.name || `เจ้าหน้าที่ ${staffUser.cid}`;
 
   return `
-    <div class="card" style="margin-bottom:14px;padding:12px 16px;">
+    <div class="card" style="margin-bottom:14px;padding:14px 18px !important;">
       <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;">
-        <div>
-          <strong>โต๊ะตรวจเจ้าหน้าที่ (StaffClinicalWorkspace)</strong>
-          <span class="muted" style="margin-left:8px;">ผู้ปฏิบัติงาน: <strong>${esc(staffName)}</strong> (${esc(staffUser.cid)})</span>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(0,122,255,0.1);color:#007AFF;display:flex;align-items:center;justify-content:center;font-size:18px;">
+            <i class="fa-solid fa-user-doctor"></i>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:16px;">โต๊ะตรวจเจ้าหน้าที่ (iPadOS Clinical Workspace)</div>
+            <div class="muted">ผู้ปฏิบัติงาน: <strong>${esc(staffName)}</strong> (${esc(staffUser.cid)})</div>
+          </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" class="btn btn-outline btn-sm" id="btnRefreshQueue">รีเฟรชคิววันนี้</button>
-          <button type="button" class="btn btn-primary btn-sm" id="btnNewVisitMode">+ เปิดคิว / บันทึกใหม่</button>
-          <button type="button" class="btn btn-outline btn-sm" id="btnStaffLogout">ออกจากระบบเจ้าหน้าที่</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btnRefreshQueue"><i class="fa-solid fa-rotate"></i> รีเฟรชคิววันนี้</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnNewVisitMode"><i class="fa-solid fa-plus"></i> เปิดคิว / บันทึกใหม่</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btnStaffLogout"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</button>
         </div>
       </div>
     </div>
 
     <div class="split-view">
-      <!-- Left Sidebar: คิวตรวจวันนี้จาก JHCIS -->
       <div class="card">
         <h3 class="card-title">
-          <span>คิวตรวจวันนี้</span>
+          <span><i class="fa-solid fa-list-ul" style="color:#007AFF;margin-right:6px;"></i>คิวตรวจวันนี้</span>
           <span class="pill pill-role" id="queueCountBadge">0</span>
         </h3>
         <div class="field">
@@ -36,41 +40,39 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
         </div>
       </div>
 
-      <!-- Right Main Workspace -->
       <div class="card">
         <div id="staffAlertBanner" class="alert-banner" style="display:none;"></div>
 
-        <!-- ค้นหา / เลือกผู้ป่วย -->
-        <div class="grid-3" style="align-items:end;margin-bottom:12px;">
-          <div class="field" style="margin-bottom:0;">
-            <label for="staffCidInput">เลขบัตรประชาชนผู้ป่วย (13 หลัก)</label>
-            <input type="text" id="staffCidInput" maxlength="13" placeholder="กรอกเลขบัตร 13 หลัก" />
-          </div>
-          <div style="display:flex;gap:6px;">
-            <button type="button" class="btn btn-blue" id="btnStaffSearchCid">ค้นหาผู้ป่วย</button>
-            <button type="button" class="btn btn-outline" id="btnStaffReadCard">อ่านบัตร</button>
-          </div>
-          <div>
-            <span class="pill pill-role" id="visitModeBadge">โหมด: สร้าง Visit ใหม่</span>
+        <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);margin-bottom:14px;">
+          <div class="grid-3" style="align-items:end;">
+            <div class="field" style="margin-bottom:0;">
+              <label for="staffCidInput">เลขบัตรประชาชนผู้ป่วย (13 หลัก)</label>
+              <input type="text" id="staffCidInput" maxlength="13" placeholder="กรอกเลขบัตร 13 หลัก" style="font-weight:700;letter-spacing:0.8px;" />
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary" id="btnStaffSearchCid"><i class="fa-solid fa-magnifying-glass"></i> ค้นหาผู้ป่วย</button>
+              <button type="button" class="btn btn-outline" id="btnStaffReadCard"><i class="fa-solid fa-id-card"></i> อ่านบัตร</button>
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <span class="pill pill-role" id="visitModeBadge">โหมด: สร้าง Visit ใหม่</span>
+            </div>
           </div>
         </div>
 
         <div id="patientSummaryBar" class="alert-banner alert-green" style="display:none;"></div>
         <div id="allergyWarningBar" class="alert-banner alert-red" style="display:none;"></div>
 
-        <!-- แท็บการทำงาน -->
         <div class="tabs" id="staffTabs">
           <button type="button" class="tab-btn active" data-tab="vitals">1. ซักประวัติ &amp; สัญญาณชีพ</button>
           <button type="button" class="tab-btn" data-tab="dxrx">2. ICD-10 &amp; สั่งยา/หัตถการ</button>
           <button type="button" class="tab-btn" data-tab="special">3. DTX / SpecialPP / เด็ก 0-60ด.</button>
           <button type="button" class="tab-btn" data-tab="history">4. ประวัติย้อนหลัง</button>
-          <button type="button" class="tab-btn" data-tab="ai_tele">5. คัดกรอง AI &amp; Telemedicine</button>
+          <button type="button" class="tab-btn" data-tab="ai_tele">5. AI &amp; Telemedicine</button>
         </div>
 
-        <!-- Tab 1: Vitals + CC/PI + Presets -->
         <div class="staff-tab-panel" data-panel="vitals">
-          <div class="grid-2">
-            <div class="field">
+          <div class="grid-2" style="margin-bottom:14px;">
+            <div class="field" style="margin-bottom:0;">
               <label for="stSymptoms">อาการสำคัญ (CC / symptoms)</label>
               <input type="text" id="stSymptoms" placeholder="เช่น ปวดเมื่อยกล้ามเนื้อ / ตรวจติดตามอาการ" />
               <div class="preset-chips">
@@ -80,7 +82,7 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
                 }).join('')}
               </div>
             </div>
-            <div class="field">
+            <div class="field" style="margin-bottom:0;">
               <label for="stSymptomsco">อาการร่วม / PI (symptomsco)</label>
               <input type="text" id="stSymptomsco" placeholder="รายละเอียดเพิ่มเติม" />
               <div class="preset-chips">
@@ -92,22 +94,22 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
             </div>
           </div>
 
-          <div class="grid-4">
-            <div class="field"><label>น้ำหนัก (kg)</label><input type="number" step="0.1" id="stWeight" /></div>
-            <div class="field"><label>ส่วนสูง (cm)</label><input type="number" step="0.1" id="stHeight" /></div>
-            <div class="field"><label>ความดัน (mmHg)</label><input type="text" id="stPressure" placeholder="120/80" /></div>
-            <div class="field"><label>ชีพจร (bpm)</label><input type="number" id="stPulse" /></div>
-            <div class="field"><label>อุณหภูมิ (°C)</label><input type="number" step="0.1" id="stTemp" /></div>
-            <div class="field"><label>รอบเอว (cm)</label><input type="number" step="0.1" id="stWaist" /></div>
-            <div class="field">
-              <label>ช่วงเวลาบริการ</label>
+          <div class="mhs-bento-vitals" style="margin-bottom:14px;">
+            <div class="mhs-vital-card"><label for="stWeight"><span>น้ำหนัก</span><span>kg</span></label><input type="number" step="0.1" id="stWeight" placeholder="0.0" /></div>
+            <div class="mhs-vital-card"><label for="stHeight"><span>ส่วนสูง</span><span>cm</span></label><input type="number" step="0.1" id="stHeight" placeholder="0.0" /></div>
+            <div class="mhs-vital-card"><label for="stPressure"><span>ความดัน</span><span>mmHg</span></label><input type="text" id="stPressure" placeholder="120/80" /></div>
+            <div class="mhs-vital-card"><label for="stPulse"><span>ชีพจร</span><span>bpm</span></label><input type="number" id="stPulse" placeholder="75" /></div>
+            <div class="mhs-vital-card"><label for="stTemp"><span>อุณหภูมิ</span><span>°C</span></label><input type="number" step="0.1" id="stTemp" placeholder="36.5" /></div>
+            <div class="mhs-vital-card"><label for="stWaist"><span>รอบเอว</span><span>cm</span></label><input type="number" step="0.1" id="stWaist" placeholder="80" /></div>
+            <div class="field" style="margin:0;">
+              <label for="stTimeService">ช่วงเวลาบริการ</label>
               <select id="stTimeService">
                 <option value="1">1 = ในเวลาราชการ</option>
                 <option value="2">2 = นอกเวลาราชการ</option>
               </select>
             </div>
-            <div class="field">
-              <label>บันทึกแพทย์/เจ้าหน้าที่ (diagnote)</label>
+            <div class="field" style="margin:0;">
+              <label for="stDiagNote">บันทึกแพทย์/เจ้าหน้าที่ (diagnote)</label>
               <input type="text" id="stDiagNote" placeholder="หมายเหตุการตรวจ" />
               <div class="preset-chips">
                 ${notePresets.map((p) => {
@@ -119,37 +121,32 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
           </div>
         </div>
 
-        <!-- Tab 2: ICD-10 + Drug/Service + Re Med -->
         <div class="staff-tab-panel" data-panel="dxrx" style="display:none;">
           <datalist id="dosePresetsList">
             ${dosePresets.map((p) => `<option value="${escAttr(p.content || p.text || '')}">${esc(p.label || '')}</option>`).join('')}
           </datalist>
-
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-            <button type="button" class="btn btn-blue btn-sm" id="btnReMed">Re Med. (ดึงยา/โรคครั้งล่าสุด)</button>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+            <button type="button" class="btn btn-primary btn-sm" id="btnReMed"><i class="fa-solid fa-rotate-left"></i> Re Med. (ดึงยา/โรคครั้งล่าสุด)</button>
             <span class="muted" id="reMedInfo"></span>
           </div>
-
           <div class="grid-2">
-            <div>
-              <label>ค้นหารหัสโรค ICD-10</label>
-              <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">
+              <label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:8px;">ค้นหารหัสโรค ICD-10</label>
+              <div style="display:flex;gap:6px;margin-bottom:8px;">
                 <input type="text" id="icdSearchInput" placeholder="พิมพ์รหัสหรือชื่อโรค เช่น I10, J06" />
                 <button type="button" class="btn btn-outline btn-sm" id="btnSearchIcd">ค้นหา</button>
               </div>
-              <div id="icdSearchResults" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:10px;"></div>
-
-              <strong>รายการ ICD-10 ที่เลือก</strong>
+              <div id="icdSearchResults" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);background:#fff;border-radius:12px;padding:6px;margin-bottom:12px;"></div>
+              <strong style="font-size:13.5px;">รายการ ICD-10 ที่เลือก</strong>
               <table>
                 <thead><tr><th>รหัส</th><th>DxType</th><th>วันนัด</th><th>ลบ</th></tr></thead>
                 <tbody id="selectedIcdBody"><tr><td colspan="4" class="muted">ยังไม่ได้เลือกรหัส ICD-10</td></tr></tbody>
               </table>
             </div>
-
-            <div>
-              <label>ค้นหายา / สมุนไพร / หัตถการ</label>
-              <div style="display:flex;gap:6px;margin-bottom:6px;">
-                <select id="drugCategorySelect" style="width:130px;">
+            <div style="padding:14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);">
+              <label style="font-weight:700;font-size:13.5px;display:block;margin-bottom:8px;">ค้นหายา / สมุนไพร / หัตถการ</label>
+              <div style="display:flex;gap:6px;margin-bottom:8px;">
+                <select id="drugCategorySelect" style="width:130px;flex-shrink:0;">
                   <option value="all">ทั้งหมด</option>
                   <option value="herb">สมุนไพร (10)</option>
                   <option value="service">หัตถการ (02,03)</option>
@@ -159,9 +156,8 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
                 <input type="text" id="drugSearchInput" placeholder="พิมพ์ชื่อยา/สมุนไพร/หัตถการ" />
                 <button type="button" class="btn btn-outline btn-sm" id="btnSearchDrug">ค้นหา</button>
               </div>
-              <div id="drugSearchResults" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:10px;"></div>
-
-              <strong>รายการยา / สมุนไพร / หัตถการ ที่สั่ง</strong>
+              <div id="drugSearchResults" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);background:#fff;border-radius:12px;padding:6px;margin-bottom:12px;"></div>
+              <strong style="font-size:13.5px;">รายการยา / สมุนไพร / หัตถการ ที่สั่ง</strong>
               <table>
                 <thead><tr><th>รายการ</th><th>จำนวน (Stepper)</th><th>วิธีใช้</th><th>ลบ</th></tr></thead>
                 <tbody id="selectedDrugBody"><tr><td colspan="4" class="muted">ยังไม่มีรายการยา/สมุนไพร/หัตถการ</td></tr></tbody>
@@ -170,18 +166,16 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
           </div>
         </div>
 
-        <!-- Tab 3: DTX + SpecialPP + เด็ก 0-60 เดือน -->
         <div class="staff-tab-panel" data-panel="special" style="display:none;">
           <div class="grid-3">
             <div class="field"><label>น้ำตาล DTX (mg/dL)</label><input type="number" step="0.1" id="stSugar" /></div>
             <div class="field"><label>สถานะการอดอาหาร</label><input type="text" id="stSugarFasting" placeholder="เช่น NPO / หลังอาหาร 2 ชม." /></div>
             <div class="field"><label>อายุเป็นเดือน (เด็ก 0-60ด.)</label><input type="number" id="stAgeMonths" placeholder="คำนวณอัตโนมัติจากคนไข้" /></div>
           </div>
-
           <div class="grid-2" style="margin-top:8px;">
-            <div class="card" style="padding:12px;">
+            <div class="card" style="padding:14px !important;background:var(--surface-2) !important;">
               <strong>SpecialPP: บุหรี่ &amp; สุรา</strong>
-              <div class="field" style="margin-top:8px;">
+              <div class="field" style="margin-top:10px;">
                 <label>สถานะการสูบบุหรี่</label>
                 <select id="stSmokeStatus">
                   <option value="">-- ไม่ระบุ --</option>
@@ -190,7 +184,7 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
                   <option value="ยังสูบอยู่">ยังสูบอยู่</option>
                 </select>
               </div>
-              <div class="field">
+              <div class="field" style="margin-bottom:0;">
                 <label>สถานะการดื่มสุรา</label>
                 <select id="stAlcoholStatus">
                   <option value="">-- ไม่ระบุ --</option>
@@ -200,10 +194,9 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
                 </select>
               </div>
             </div>
-
-            <div class="card" style="padding:12px;">
+            <div class="card" style="padding:14px !important;background:var(--surface-2) !important;">
               <strong>โภชนาการเด็ก 0-60 เดือน (visitnutrition)</strong>
-              <div class="grid-2" style="margin-top:8px;">
+              <div class="grid-2" style="margin-top:10px;">
                 <div class="field"><label>รอบศีรษะ (cm)</label><input type="number" step="0.1" id="stHeadCircum" /></div>
                 <div class="field">
                   <label>ระดับโภชนาการ (nlevel)</label>
@@ -214,43 +207,40 @@ export function renderStaffClinicalWorkspace({ staffUser, tenantSession, presets
                     <option value="99">รหัส 99 (แปลงเป็น 3, NULL, NULL)</option>
                   </select>
                 </div>
-                <div class="field"><label>nlevel2</label><input type="text" id="stNlevel2" value="3" /></div>
-                <div class="field"><label>nlevel3 / พัฒนาการ</label><input type="text" id="stNlevel3" value="4" /></div>
+                <div class="field" style="margin-bottom:0;"><label>nlevel2</label><input type="text" id="stNlevel2" value="3" /></div>
+                <div class="field" style="margin-bottom:0;"><label>nlevel3 / พัฒนาการ</label><input type="text" id="stNlevel3" value="4" /></div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Tab 4: ประวัติย้อนหลัง -->
         <div class="staff-tab-panel" data-panel="history" style="display:none;">
           <div id="patientHistoryBox" class="muted">เลือกผู้ป่วยเพื่อดูประวัติการรับบริการย้อนหลัง 10 ครั้ง</div>
         </div>
 
-        <!-- Tab 5: คัดกรอง AI & Telemedicine -->
         <div class="staff-tab-panel" data-panel="ai_tele" style="display:none;">
           <div class="grid-2">
-            <div class="card" style="padding:14px;">
-              <strong>AI วิเคราะห์ความเสี่ยงเบื้องต้น</strong>
-              <p class="muted">ประเมินจากความดัน น้ำตาล และน้ำหนักของคนไข้ปัจจุบัน</p>
-              <button type="button" class="btn btn-blue btn-sm" id="btnRunStaffAi">วิเคราะห์ด้วย AI</button>
-              <div id="staffAiResult" class="alert-banner" style="display:none;margin-top:10px;"></div>
+            <div class="card" style="padding:16px !important;background:var(--surface-2) !important;">
+              <strong><i class="fa-solid fa-robot" style="color:#007AFF;margin-right:6px;"></i>AI วิเคราะห์ความเสี่ยงเบื้องต้น</strong>
+              <p class="muted" style="margin:6px 0 12px;">ประเมินจากความดัน น้ำตาล และน้ำหนักของคนไข้ปัจจุบัน</p>
+              <button type="button" class="btn btn-primary btn-sm" id="btnRunStaffAi">วิเคราะห์ด้วย AI</button>
+              <div id="staffAiResult" class="alert-banner" style="display:none;margin-top:12px;"></div>
             </div>
-            <div class="card" style="padding:14px;">
-              <strong>Telemedicine (Jitsi Meet)</strong>
-              <div class="field" style="margin-top:8px;">
+            <div class="card" style="padding:16px !important;background:var(--surface-2) !important;">
+              <strong><i class="fa-solid fa-video" style="color:#0EA5E9;margin-right:6px;"></i>Telemedicine (Jitsi Meet)</strong>
+              <div class="field" style="margin-top:10px;">
                 <label>ชื่อห้องประชุม Tele-consultation</label>
                 <input type="text" id="jitsiRoomInput" value="mini-health-${escAttr(tenantSession.hospcode || 'room')}" />
               </div>
-              <button type="button" class="btn btn-primary btn-sm" id="btnOpenJitsi">เปิดห้อง Telemedicine (Jitsi)</button>
-              <div id="jitsiContainer" style="margin-top:10px;"></div>
+              <button type="button" class="btn btn-blue btn-sm" id="btnOpenJitsi">เปิดห้อง Telemedicine (Jitsi)</button>
+              <div id="jitsiContainer" style="margin-top:12px;"></div>
             </div>
           </div>
         </div>
 
-        <!-- ปุ่มบันทึกหลัก -->
         <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
-          <button type="button" class="btn btn-primary" style="padding:11px 22px;" id="btnSaveStaffQueue">
-            บันทึกข้อมูลเข้า JHCIS
+          <button type="button" class="btn btn-primary" style="padding:12px 26px;font-size:15px;" id="btnSaveStaffQueue">
+            <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลเข้า JHCIS
           </button>
         </div>
       </div>

@@ -1,0 +1,683 @@
+/* Mini Health Station SaaS — Kiosk Original + iPadOS Light UI */
+:root {
+  --bg: #F2F2F7;
+  --surface: #FFFFFF;
+  --surface-2: #F8FAFC;
+  --text: #0F172A;
+  --muted: #64748B;
+  --border: rgba(15, 23, 42, 0.08);
+  --primary: #007AFF;
+  --primary-hover: #0062CC;
+  --cyan: #4BC0C8;
+  --blue: #007AFF;
+  --green: #10B981;
+  --amber: #F59E0B;
+  --red: #EF4444;
+  --shadow-sm: 0 2px 10px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 12px 32px rgba(15, 23, 42, 0.09);
+  --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Display", "IBM Plex Sans Thai", "Kanit", sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-family: var(--font-main) !important;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+button, input, select, textarea { font-family: inherit; }
+
+/* ====== ล้างแถบหัวเว็บสีเขียวเข้มเดิม -> กระจกฝ้าสีขาวสว่าง ====== */
+header, .topbar, .app-header, .navbar, nav.topbar {
+  background: rgba(255, 255, 255, 0.92) !important;
+  background-image: none !important;
+  color: #0F172A !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 2px 14px rgba(15, 23, 42, 0.05) !important;
+}
+
+header *, .topbar *, .app-header *, .navbar * {
+  color: #0F172A;
+}
+
+header small, .topbar small, .app-header small,
+header .muted, .topbar .muted, .app-header .muted {
+  color: #64748B !important;
+}
+
+header button, .topbar button, .app-header button, .navbar button {
+  background: #F1F5F9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+  padding: 7px 15px !important;
+  transition: all 0.16s ease !important;
+}
+
+header button:hover, .topbar button:hover, .app-header button:hover {
+  background: #E2E8F0 !important;
+}
+
+header button.active, .topbar button.active, .app-header button.active,
+header .tab-btn.active, .topbar .tab-btn.active, .app-header .tab-btn.active {
+  background: #007AFF !important;
+  color: #FFFFFF !important;
+  border-color: #007AFF !important;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.28) !important;
+}
+
+header .pill-online, .topbar .pill-online, .app-header .pill-online {
+  background: #DCFCE7 !important;
+  color: #15803D !important;
+  border: 1px solid #BBF7D0 !important;
+}
+
+header .pill-warn, .topbar .pill-warn, .app-header .pill-warn {
+  background: #FEF3C7 !important;
+  color: #B45309 !important;
+}
+
+/* ====== Layout Container ====== */
+main, .container, .app-main {
+  max-width: 1360px;
+  margin-inline: auto;
+}
+
+.card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 20px !important;
+}
+
+.card-title {
+  margin: 0 0 12px;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.muted { color: var(--muted) !important; font-size: 13.5px; }
+
+/* ====== Inputs ====== */
+.field { margin-bottom: 12px; }
+.field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="date"],
+input[type="tel"],
+input[type="file"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: 12px !important;
+  border: 1.5px solid rgba(15, 23, 42, 0.12) !important;
+  background: #FFFFFF !important;
+  color: var(--text) !important;
+  font-size: 14.5px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14) !important;
+}
+
+/* ====== Buttons (Apple Blue & Clean White, ไม่มีสีเขียวเข้ม) ====== */
+.btn {
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  font-size: 14px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: transform 0.14s ease, filter 0.14s ease, background 0.14s ease;
+}
+.btn:hover:not(:disabled) { filter: brightness(1.04); transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-sm { padding: 7px 13px !important; font-size: 13px !important; border-radius: 10px !important; }
+
+.btn-primary {
+  background: linear-gradient(135deg, #007AFF, #2563EB) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 6px 16px rgba(0, 122, 255, 0.24);
+}
+.btn-blue {
+  background: linear-gradient(135deg, #0EA5E9, #0284C7) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.22);
+}
+.btn-cyan {
+  background: linear-gradient(135deg, #4BC0C8, #22A6B3) !important;
+  color: #FFFFFF !important;
+  border-radius: 999px !important;
+  box-shadow: 0 8px 20px rgba(75, 192, 200, 0.36);
+}
+.btn-green {
+  background: linear-gradient(135deg, #10B981, #059669) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.28);
+}
+.btn-outline {
+  background: #FFFFFF !important;
+  color: var(--text) !important;
+  border: 1.5px solid rgba(15, 23, 42, 0.14) !important;
+}
+.btn-outline:hover:not(:disabled) { background: #F8FAFC !important; }
+.btn-danger {
+  background: linear-gradient(135deg, #EF4444, #DC2626) !important;
+  color: #FFFFFF !important;
+}
+
+/* ====== Pills & Segmented Tabs ====== */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px !important;
+  border-radius: 999px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+.pill-online { background: #DCFCE7 !important; color: #15803D !important; }
+.pill-warn { background: #FEF3C7 !important; color: #B45309 !important; }
+.pill-role { background: rgba(0, 122, 255, 0.1) !important; color: #007AFF !important; }
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  background: rgba(120, 120, 128, 0.12);
+  margin: 14px 0 18px !important;
+}
+.tab-btn {
+  border: none !important;
+  background: transparent !important;
+  color: #475569 !important;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.tab-btn.active {
+  background: #FFFFFF !important;
+  color: #007AFF !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+}
+
+.alert-banner {
+  border-radius: 14px !important;
+  padding: 12px 16px !important;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+.alert-green { background: #ECFDF5 !important; color: #065F46 !important; border: 1px solid #A7F3D0 !important; }
+.alert-red { background: #FEF2F2 !important; color: #991B1B !important; border: 1px solid #FECACA !important; }
+
+.preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip {
+  border: 1px solid rgba(0, 122, 255, 0.22) !important;
+  background: #EFF6FF !important;
+  color: #1D4ED8 !important;
+  padding: 5px 11px !important;
+  border-radius: 999px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+}
+.chip:hover { background: #DBEAFE !important; }
+
+/* ====== Grids, Split View & Tables ====== */
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+
+.split-view {
+  display: grid !important;
+  grid-template-columns: 310px minmax(0, 1fr) !important;
+  gap: 16px !important;
+  align-items: start;
+}
+
+.queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.queue-list > * {
+  border-radius: 14px !important;
+  border: 1px solid var(--border) !important;
+  background: #F8FAFC !important;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+.queue-list > *:hover {
+  background: #FFFFFF !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #FFFFFF;
+  font-size: 13.5px;
+  margin-top: 8px;
+}
+table th {
+  background: #F8FAFC !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+  text-align: left;
+  padding: 11px 12px !important;
+  border-bottom: 1px solid var(--border);
+}
+table td {
+  padding: 10px 12px !important;
+  border-bottom: 1px solid #F1F5F9;
+  vertical-align: middle;
+}
+table tr:last-child td { border-bottom: none; }
+
+.role-checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.role-checkbox-item {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 13px !important;
+  cursor: pointer;
+}
+.role-checkbox-item input { width: auto !important; margin: 0; }
+
+/* =========================================================
+   SCREEN 1: KIOSK STANDBY (ถอดแบบหน้าต้นฉบับ miniheealthstation.com)
+   ========================================================= */
+.mhs-kiosk-shell {
+  width: 100%;
+  min-height: calc(100vh - 86px);
+  border-radius: 26px;
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.mhs-kiosk-header {
+  background-color: #FFFFFF;
+  background-image:
+    radial-gradient(rgba(148, 163, 184, 0.16) 1.5px, transparent 1.5px),
+    url('/wallpaper.png');
+  background-size: 28px 28px, cover;
+  background-position: center;
+  padding: 18px 20px 16px;
+  text-align: center;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  position: relative;
+  z-index: 3;
+}
+
+.mhs-kiosk-logo {
+  height: 78px;
+  max-width: 340px;
+  object-fit: contain;
+  margin: 0 auto 2px;
+  display: block;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
+}
+
+.mhs-aurora-title {
+  margin: 0;
+  font-size: clamp(28px, 4.2vw, 48px);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  background: linear-gradient(270deg, #00C6FF, #3B82F6, #7C3AED, #00C6FF);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: mhsAurora 5s linear infinite;
+}
+
+.mhs-kiosk-hosp {
+  margin: 2px 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.mhs-vhv-bar {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6366F1, #4F46E5);
+  color: #FFFFFF;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.32);
+}
+
+.mhs-vhv-bar button {
+  border: none;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* พื้นที่วิดีโอเต็มจอ + รูปสอดบัตร nick.png */
+.mhs-standby-stage {
+  position: relative;
+  flex: 1;
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px 56px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #FFF7ED 0%, #FED7AA 100%);
+}
+
+.mhs-standby-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.mhs-standby-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  max-width: 560px;
+}
+
+.mhs-nick-trigger {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mhs-nick-trigger:hover { transform: scale(1.06); }
+.mhs-nick-trigger:active { transform: scale(0.96); }
+.mhs-nick-trigger img {
+  width: min(260px, 68vw);
+  max-height: 240px;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 24px rgba(15, 23, 42, 0.22));
+  animation: mhsFloat 3.2s ease-in-out infinite;
+}
+
+.mhs-standby-title {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 700;
+  color: #111827;
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.9);
+}
+
+.mhs-standby-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* =========================================================
+   SCREEN 2: KIOSK DASHBOARD (หัวฟ้า-มินต์ + 5 อุปกรณ์ + Bento Vitals)
+   ========================================================= */
+.mhs-kiosk-dash {
+  padding: 20px;
+  background: #F2F2F7;
+  flex: 1;
+}
+
+.mhs-patient-gradient {
+  background: linear-gradient(135deg, #1FA2FF 0%, #12D8FA 55%, #29FFC6 100%);
+  color: #FFFFFF;
+  border-radius: 22px;
+  padding: 22px 24px;
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(18, 216, 250, 0.32);
+  margin-bottom: 18px;
+  position: relative;
+}
+
+.mhs-clock-pill {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 5px 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.mhs-guide-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.mhs-guide-tile {
+  background: #FFFFFF;
+  border: 1.5px solid rgba(59, 130, 246, 0.25);
+  border-radius: 16px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.16s ease;
+}
+.mhs-guide-tile:hover {
+  border-color: #007AFF;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 122, 255, 0.14);
+}
+.mhs-guide-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+}
+.mhs-guide-tile strong { font-size: 13px; color: var(--text); }
+
+.mhs-bento-vitals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.mhs-vital-card {
+  background: #F8FAFC;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mhs-vital-card:focus-within {
+  background: #FFFFFF;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14);
+}
+.mhs-vital-card label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+}
+.mhs-vital-card input {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 2px 0 !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--text) !important;
+}
+
+.stars { display: flex; flex-wrap: wrap; gap: 8px; }
+.star-btn {
+  flex: 1;
+  min-width: 96px;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  border: 1.5px solid var(--border) !important;
+  background: #FFFFFF !important;
+  color: #64748B !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+}
+.star-btn.selected {
+  border-color: #F59E0B !important;
+  background: #FFFBEB !important;
+  color: #B45309 !important;
+}
+
+/* ====== Login Stage ====== */
+.mhs-login-stage {
+  position: relative;
+  min-height: calc(100vh - 100px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  border-radius: 26px;
+  overflow: hidden;
+  background: #FFF7ED;
+}
+.mhs-login-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 460px;
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-radius: 28px !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14) !important;
+  padding: 34px 30px !important;
+}
+
+/* ====== Native Dialog Modals ====== */
+dialog.mhs-dialog {
+  width: min(92vw, 480px);
+  border: none;
+  border-radius: 26px;
+  padding: 26px;
+  background: #FFFFFF;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+  text-align: center;
+}
+dialog.mhs-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+}
+.mhs-dialog-media {
+  width: 100%;
+  height: 260px;
+  border-radius: 16px;
+  background: #F8FAFC;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin: 14px 0;
+}
+.mhs-dialog-media img { width: 100%; height: 100%; object-fit: contain; }
+
+@keyframes mhsAurora {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes mhsFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@media (max-width: 1024px) {
+  .split-view { grid-template-columns: 1fr !important; }
+  .queue-list { max-height: 260px; }
+  .mhs-bento-vitals, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mhs-guide-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .mhs-guide-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mhs-standby-stage { min-height: 420px; }
+}

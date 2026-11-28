@@ -1,0 +1,1 @@
+pbpaste > update-ui.sh && bash update-ui.sh && rm -f update-ui.sh
