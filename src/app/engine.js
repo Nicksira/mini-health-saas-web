@@ -41,7 +41,8 @@ export function loadTenantSession() {
       const raw = localStorage.getItem(keys[i]);
       if (raw) {
         const obj = JSON.parse(raw);
-        const t = obj.tenant || obj;
+        const t = Object.assign({}, obj.tenant || obj);
+        if (!t.license_key) t.license_key = t.licenseKey || obj.license_key || obj.licenseKey || '';
         if (t && t.hospcode && t.api_url && t.api_secret) return t;
       }
     } catch (e) {}
@@ -118,10 +119,27 @@ export function escAttr(s) { return esc(s).replace(/"/g, '&quot;'); }
 
 export async function cloudFetch(endpoint, opts = {}) {
   const t = AppState.tenant;
+  const pinEl = typeof document !== 'undefined' ? document.getElementById('admCloudPin') : null;
+  if (pinEl && pinEl.value.trim()) {
+    AppState.adminPin = pinEl.value.trim();
+    sessionStorage.setItem('mhs_admin_pin', AppState.adminPin);
+  }
+  const lic = t && (t.license_key || t.licenseKey || '');
+  if (endpoint !== '/api/license/verify' && (!t || !t.hospcode || !lic)) {
+    return { ok: false, status: 400, data: { message: 'ไม่พบ License Key ในเซสชันเดิม กรุณากด "ออกจากสถานบริการ" ในแท็บตั้งค่าระบบ แล้วล็อกอินด้วยรหัส 5 หลัก + License Key ใหม่อีกครั้ง' } };
+  }
   const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
-  if (t && t.hospcode) headers['x-tenant-hospcode'] = t.hospcode;
-  if (t && t.license_key) headers['x-tenant-license-key'] = t.license_key;
-  if (AppState.adminPin) headers['x-tenant-admin-pin'] = AppState.adminPin;
+  if (t && t.hospcode) {
+    headers['x-hospcode'] = t.hospcode;
+    headers['x-tenant-hospcode'] = t.hospcode;
+  }
+  if (lic) {
+    headers['x-license-key'] = lic;
+    headers['x-tenant-license-key'] = lic;
+  }
+  if (AppState.adminPin) {
+    headers['x-tenant-admin-pin'] = AppState.adminPin;
+  }
   const res = await fetch(AppState.cloudUrl.replace(/\/+$/, '') + endpoint, Object.assign({}, opts, { headers }));
   const data = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, data };
