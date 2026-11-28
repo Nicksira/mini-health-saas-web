@@ -763,6 +763,26 @@ function renderActiveModal() {
 }
 
 function render() {
+  // 1. จำตำแหน่ง Scroll เดิมของทุกพื้นที่ก่อนวาดหน้าจอใหม่
+  const prevDashScroll = document.querySelector('.dashboard-scroll')?.scrollTop || 0;
+  const prevStaffScroll = document.getElementById('staffScroll')?.scrollTop || 0;
+  const prevQueueScroll = document.querySelector('.ios-queue-list')?.scrollTop || 0;
+
+  // 2. จำช่องที่ผู้ใช้กำลังพิมพ์อยู่ (กรณีไม่ได้เปิด Modal)
+  const ae = document.activeElement;
+  let focusSelector = null;
+  let selStart = null;
+  let selEnd = null;
+  if (!AppState.modal && ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) {
+    if (ae.dataset && ae.dataset.vital) focusSelector = '[data-vital="' + ae.dataset.vital + '"]';
+    else if (ae.dataset && ae.dataset.bind) focusSelector = '[data-bind="' + ae.dataset.bind + '"]';
+    else if (ae.id) focusSelector = '#' + ae.id;
+    try {
+      selStart = ae.selectionStart;
+      selEnd = ae.selectionEnd;
+    } catch (e) {}
+  }
+
   let html = '';
   if (AppState.view === 'tenant_login') html = renderTenantLogin();
   else if (AppState.view === 'home') html = renderHomeScreen();
@@ -771,15 +791,36 @@ function render() {
   else if (AppState.view === 'admin') html = renderAdminDashboard();
   rootEl.innerHTML = html + renderActiveModal() + (isSaving ? '<div class="m-backdrop" style="z-index:99999;color:#fff;flex-direction:column;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:46px;margin-bottom:12px;"></i><h3>กำลังบันทึกข้อมูลเข้า JHCIS...</h3></div>' : '');
 
+  // 3. คืนค่าตำแหน่ง Scroll เดิมทันที ไม่ให้หน้าจอเด้งกลับขึ้นบนสุด
+  const dashEl = document.querySelector('.dashboard-scroll');
+  if (dashEl && prevDashScroll > 0) dashEl.scrollTop = prevDashScroll;
+
   const sc = document.getElementById('staffScroll');
   if (sc) {
+    if (prevStaffScroll > 0) sc.scrollTop = prevStaffScroll;
     sc.onscroll = () => {
       const ct = document.getElementById('compactTitle');
       if (ct) ct.style.opacity = sc.scrollTop > 50 ? '1' : '0';
     };
   }
+
+  const qEl = document.querySelector('.ios-queue-list');
+  if (qEl && prevQueueScroll > 0) qEl.scrollTop = prevQueueScroll;
+
+  // 4. คืนโฟกัสให้ช่อง Modal หรือช่องที่กำลังพิมพ์อยู่โดยไม่ดึงหน้าจอเลื่อน
   const f1 = document.getElementById('inpVhvCid') || document.getElementById('inpPatCid') || document.getElementById('inpAdmPass') || document.getElementById('shIcdIn') || document.getElementById('shDrugIn');
-  if (f1) { f1.focus(); if (f1.setSelectionRange && f1.value) try { f1.setSelectionRange(f1.value.length, f1.value.length); } catch (e) {} }
+  if (f1) {
+    f1.focus({ preventScroll: true });
+    if (f1.setSelectionRange && f1.value) try { f1.setSelectionRange(f1.value.length, f1.value.length); } catch (e) {}
+  } else if (focusSelector) {
+    const nextEl = document.querySelector(focusSelector);
+    if (nextEl) {
+      nextEl.focus({ preventScroll: true });
+      if (selStart != null && nextEl.setSelectionRange) {
+        try { nextEl.setSelectionRange(selStart, selEnd != null ? selEnd : selStart); } catch (e) {}
+      }
+    }
+  }
 }
 
 // ==================== GLOBAL EVENTS ====================
