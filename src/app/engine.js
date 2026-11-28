@@ -349,3 +349,55 @@ export function formatThaiNow() {
   return d.getDate() + ' ' + th[d.getMonth()] + ' ' + (d.getFullYear() + 543) + ' เวลา ' +
     String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0') + ' น.';
 }
+
+export async function saveTenantBranding(brandingData) {
+  const t = AppState.tenant;
+  if (!t || !t.hospcode) return false;
+  
+  // บันทึกที่ Local เครื่องก่อน
+  if (brandingData.custom_logo_url !== undefined) localStorage.setItem('mhs_custom_logo', brandingData.custom_logo_url);
+  if (brandingData.custom_video_url !== undefined) localStorage.setItem('mhs_custom_video', brandingData.custom_video_url);
+  if (brandingData.custom_hosp_name !== undefined) localStorage.setItem('mhs_custom_hosp_name', brandingData.custom_hosp_name);
+
+  // ส่งขึ้นไปเซฟบน Cloud เพื่อให้เครื่องอื่นเห็นด้วย
+  try {
+    const res = await cloudFetch('/api/tenant/branding', {
+      method: 'POST',
+      body: JSON.stringify({
+        logo_url: brandingData.custom_logo_url,
+        video_url: brandingData.custom_video_url,
+        hosp_name: brandingData.custom_hosp_name
+      })
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('Failed to sync branding to cloud:', err);
+    return false;
+  }
+}
+
+export async function fetchTenantBranding() {
+  const t = AppState.tenant;
+  if (!t || !t.hospcode) return;
+  
+  try {
+    const res = await cloudFetch('/api/tenant/branding');
+    if (res.ok && res.data) {
+      const data = res.data.branding || res.data.data || {};
+      if (data.logo_url) {
+        localStorage.setItem('mhs_custom_logo', data.logo_url);
+        AppState.customLogo = data.logo_url;
+      }
+      if (data.video_url) {
+        localStorage.setItem('mhs_custom_video', data.video_url);
+        AppState.customVideo = data.video_url;
+      }
+      if (data.hosp_name) {
+        localStorage.setItem('mhs_custom_hosp_name', data.hosp_name);
+        AppState.customHospName = data.hosp_name;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch branding from cloud:', err);
+  }
+}

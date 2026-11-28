@@ -271,7 +271,7 @@ function renderTenantLogin() {
     '    </div>',
     '    <form id="frmTenantLogin">',
     '      <input type="hidden" id="tlCloudUrl" value="' + escAttr(AppState.cloudUrl) + '" />',
-    '      <div class="tl-field"><label>รหัสสถานบริการ 5 หลัก (hospcode)</label><input id="tlHosp" maxlength="5" required placeholder="เช่น 02506" /></div>',
+    '      <div class="tl-field"><label>รหัสสถานบริการ 5 หลัก (hospcode)</label><input id="tlHosp" maxlength="5" required placeholder="เช่น 12345" /></div>',
     '      <div class="tl-field"><label>License Key</label><input id="tlKey" required placeholder="MHS-XXXXX-XXXX-XXXX" /></div>',
     '      <div id="tlErr" style="color:#dc2626;font-size:13.5px;font-weight:700;min-height:20px;margin-bottom:10px;"></div>',
     '      <button type="submit" class="btn-full" style="background:linear-gradient(135deg,#0d9488,#0284c7);font-size:16px;">ตรวจสอบ License และเข้าใช้งาน</button>',
@@ -719,7 +719,7 @@ function renderActiveModal() {
     return '<div class="m-backdrop" style="background:rgba(220,38,38,0.88);z-index:9999;"><div class="m-box" style="border:4px solid #fca5a5;"><i class="fa-solid fa-triangle-exclamation" style="font-size:66px;color:#dc2626;"></i><h2 style="color:#dc2626;margin:8px 0;">อันตราย! ความดันสูงวิกฤต</h2><p style="font-size:18px;font-weight:700;">ความดันของคุณคือ <span style="color:#dc2626;font-size:26px;">' + esc(AppState.vitals.sysDia) + '</span><br/>กรุณานั่งพักและแจ้งเจ้าหน้าที่ทันที</p><div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;"><a href="tel:1669" class="btn-full" style="background:#dc2626;"><i class="fa-solid fa-phone-volume"></i> โทรสายด่วน 1669</a><button type="button" class="ios-pill" style="justify-content:center;padding:12px;" data-act="close-modal">รับทราบและปิดหน้าต่าง</button></div></div></div>';
   }
   if (m === 'telemed') {
-    const rm = 'MiniHealthStation-' + ((AppState.tenant && AppState.tenant.hospcode) || '02506');
+    const rm = 'MiniHealthStation-' + ((AppState.tenant && AppState.tenant.hospcode) || '12345');
     return '<div class="m-backdrop"><div style="width:92vw;height:86vh;background:#0f172a;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;"><div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;color:#fff;"><strong>ระบบแพทย์ทางไกล (Telemedicine)</strong><button type="button" class="btn-badge-out" style="padding:8px 18px;" data-act="close-modal">วางสาย / กลับหน้าหลัก</button></div><iframe src="https://meet.jit.si/' + rm + '#config.prejoinPageEnabled=false" allow="camera; microphone; fullscreen; display-capture; autoplay" style="width:100%;flex:1;border:none;"></iframe></div></div>';
   }
   if (m === 'preset') {
