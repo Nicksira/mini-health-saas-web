@@ -1295,7 +1295,32 @@ setInterval(() => {
 
 setInterval(() => { if (AppState.view === 'home' && AppState.user && !AppState.modal && !isPollingCard) { isPollingCard = true; readSmartcard(true).finally(() => { isPollingCard = false; }); } }, 2500);
 setInterval(() => { if (AppState.view === 'staff') fetchTodayQueue(); }, 15000);
-setInterval(() => { if (AppState.view === 'admin' && AppState.adminTab === 'vhv') cloudFetch('/api/tenant/vhv-stats').then((r) => { if (r.ok && r.data.success) { AppState.vhvStats = r.data.data || []; render(); } }); }, 3000);
+let __isPollingVhv = false;
+setInterval(() => {
+  if (__isPollingVhv || document.hidden || AppState.modal || AppState.view !== 'admin' || AppState.adminTab !== 'vhv') return;
+  __isPollingVhv = true;
+  cloudFetch('/api/tenant/vhv-stats')
+    .then((r) => {
+      if (!r.ok || !r.data || !r.data.success) return;
+      const nextData = r.data.data || [];
+      if (JSON.stringify(nextData) === JSON.stringify(AppState.vhvStats)) return;
+      AppState.vhvStats = nextData;
+      if (AppState.view !== 'admin' || AppState.adminTab !== 'vhv' || AppState.modal) return;
+      const curBody = rootEl.querySelector('table tbody');
+      if (curBody && typeof renderAdminDashboard === 'function') {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = renderAdminDashboard();
+        const nextBody = tmp.querySelector('table tbody');
+        if (nextBody) {
+          curBody.innerHTML = nextBody.innerHTML;
+          return;
+        }
+      }
+      render();
+    })
+    .catch(() => {})
+    .finally(() => { __isPollingVhv = false; });
+}, 3000);
 setInterval(() => { sendHeartbeat('online', false); }, 10000);
 setInterval(async () => {
   if (isHuntingBP || (AppState.view !== 'kiosk' && AppState.view !== 'staff') || !navigator.bluetooth || !navigator.bluetooth.getDevices) return;
